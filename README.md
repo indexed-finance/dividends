@@ -1,9 +1,5 @@
 # @indexed-finance/dividends
 
-Smart contracts for distribution of dividends to token holders.
-
-## Documentation
-
 This repository contains the following primary contracts:
 
 `AbstractDividends.sol` is a generic contract for distributing pro-rata dividends amongst an arbitrary number of "shareholders", where the inheriting contract defines what a shareholder is and how many shares they have.
