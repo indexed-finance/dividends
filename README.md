@@ -24,6 +24,8 @@ The timelock contract allows users to deposit one token (`depositToken`) and loc
 
 The duration of the lock is limited by a configured range, but is set by the user making the deposit. The longer the deposit is locked for, the more dividend-bearing tokens will be minted for the user. The minimum lock duration will give 1 dividend token for every deposited token, and the maximum duration will give 1 + a configured bonus multiplier (set at deployment) for every locked token.
 
+In order to withdraw the locked tokens, the user must burn the amount of dividend tokens received when the deposit was made.
+
 Tokens may be withdrawn early in exchange for an early withdrawal fee. The early withdrawal fee is determined by the fraction of the total lock period remaining as well as a configured maximum fee set at deployment.
 
 ## Configuration
