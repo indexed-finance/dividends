@@ -43,7 +43,7 @@ Users can deposit an arbitrary amount of `depositToken` for `duration` seconds i
 
 The depositor can call the `delegate` function on the timelock contract to delegate the voting shares for their locked tokens to another account if it is a delegatable ERC20 token such as COMP, UNI or NDX with a `delegate(address delegatee) external;` function.
 
-The timelock contract does not actually hold the tokens being deposited. It uses a `DelegationModule` contract which creates a separate "vault" for each depositor. See [DelegationModule](#delegationmodulesol) for details about this contract.
+The timelock contract does not actually hold the tokens being deposited. It uses a `DelegationModule` contract which creates a separate "sub-module" for each depositor. See [DelegationModule](#delegationmodulesol) for details about this contract.
 
 ## Lock Duration
 
