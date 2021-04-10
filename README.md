@@ -4,7 +4,7 @@ Smart contracts for distribution of dividends to token holders.
 
 ## Documentation
 
-This repository contains four primary contracts:
+This repository contains the following primary contracts:
 
 `AbstractDividends.sol` is a generic contract for distributing pro-rata dividends amongst an arbitrary number of "shareholders", where the inheriting contract defines what a shareholder is and how many shares they have.
 
@@ -13,6 +13,8 @@ This repository contains four primary contracts:
 `ERC20DividendsOwned.sol` is an ERC20 contract that inherits `ERC20Dividends.sol` and allows an owner to mint and burn shares to accounts. It stores a `token` address which is the token that dividends are paid out in. It allows anyone to distribute dividends via the function `distributeDividends`.
 
 `SharesTimeLock.sol` is the owner of an `ERC20DividendsOwned.sol` contract. It allows users to lock up a `depositToken` for a variable duration in exchange for the dividend-bearing token, which must be burned in order to withdraw the locked tokens.
+
+`DelegationModule.sol` is a contract that separates delegatable token balances into sub-modules per user that can then delegate voting shares.
 
 # [`SharesTimeLock.sol`](./contracts/SharesTimeLock.sol)
 
