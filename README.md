@@ -49,7 +49,7 @@ The timelock contract does not actually hold the tokens being deposited. It uses
 
 The lock duration must be at or between `minLockDuration` and `maxLockDuration`. If tokens are locked for exactly `minLockDuration`, the ratio of dividend tokens to deposited tokens will be 1. If tokens are locked for exactly `maxLockDuration`, the ratio of dividend tokens to deposited tokens will be `1 + maxDividendsBonusMultiplier` As the user increases the lock duration, they receive more dividend tokens.
 
-> Note: The bonus multiplier is actually stored as a large integer with a base value of 1e18=1. The formulae here are simplified for readability.
+> **Note:** The bonus multiplier is actually stored as a large integer with a base value of 1e18=1. The formulae here are simplified for readability.
 
 The exact amount of dividend tokens received for locking `amount` deposit tokens for `duration` seconds is:
 
