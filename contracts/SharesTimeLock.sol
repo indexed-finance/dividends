@@ -120,4 +120,22 @@ contract SharesTimeLock is DelegationModule, Ownable() {
       _withdrawFromModule(msg.sender, msg.sender, lock.amount);
     }
   }
+
+  // Eject expired locks
+  function eject(uint256[] memory lockIds) external {
+    for(uint256 i = 0; i < lockIds.length; i ++) {
+      Lock memory lock = locks[lockIds[i]];
+      //skip if lock not expired or locked amount is zero
+      if(lock.lockedAt + lock.lockDuration < block.timestamp || lock.amount == 0) {
+        continue;
+      }
+
+      delete locks[lockIds[i]];
+      uint256 multiplier = getDividendsMultiplier(lock.lockDuration);
+      uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
+      dividendsToken.burn(lock.owner, dividendShares);
+
+      _withdrawFromModule(lock.owner, address(this), lock.amount);
+    }
+  }
 }
