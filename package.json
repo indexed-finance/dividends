@@ -56,7 +56,7 @@
   },
   "scripts": {
     "lint": "hardhat check",
-    "compile": "hardhat compile",
+    "compile": "COMPILE_ONLY=1 hardhat compile",
     "coverage": "hardhat coverage",
     "test": "hardhat test",
     "clean": "rm -rf ./artifacts && rm -rf ./typechain"
