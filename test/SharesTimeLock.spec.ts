@@ -30,8 +30,8 @@ describe('DelegationModule', () => {
     timeLock = (await factory.deploy(
       depositToken.address,
       dividendsToken.address,
-      duration.days(30),
-      duration.days(90),
+      duration.days(1),
+      duration.days(9000),
       toBigNumber(1)
     )) as SharesTimeLock
     await depositToken.mint(wallet.address, toBigNumber(10))
@@ -72,6 +72,14 @@ describe('DelegationModule', () => {
   })
 
   describe('getDividendsMultiplier()', () => {
+
+    it.only('a name', async () => {
+      await timeLock.depositByMonths(toBigNumber(1), 0, receiver);
+      await timeLock.depositByMonths(toBigNumber(1), 1, receiver);
+      await timeLock.depositByMonths(toBigNumber(1), 2, receiver);
+      await timeLock.depositByMonths(toBigNumber(1), 6, receiver);
+    })
+
     it('Should revert if duration less than minimum', async () => {
       await expect(timeLock.getDividendsMultiplier(duration.days(29))).to.be.revertedWith('getDividendsMultiplier: Duration not correct')
     })

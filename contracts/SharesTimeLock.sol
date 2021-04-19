@@ -21,6 +21,19 @@ contract SharesTimeLock is Ownable() {
 
   uint256 public minLockAmount;
 
+  //Weird stuff
+  uint256 private constant avgSecondsMonth = 2628000;
+  uint256[8] private maxRatioArray = [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    83333333333300000,
+    105586554548800000
+  ];
+
   event MinLockAmountChanged(uint256 newLockAmount);
   event Deposited(uint256 amount, uint32 lockDuration, address owner);
   event Withdrawn(uint256 amount, address owner);
@@ -43,7 +56,9 @@ contract SharesTimeLock is Ownable() {
    */
   function getDividendsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getDividendsMultiplier: Duration not correct");
-    uint256 multiplier = uint256(duration).mul(1e18) / maxLockDuration;
+    uint256 month = uint256(duration) / avgSecondsMonth;
+    uint256 multiplier = maxRatioArray[month];
+
     return multiplier;
   }
 
@@ -60,9 +75,17 @@ contract SharesTimeLock is Ownable() {
     minLockDuration = minLockDuration_;
     maxLockDuration = maxLockDuration_;
     minLockAmount = minLockAmount_;
+    
   }
 
-  function deposit(uint256 amount, uint32 duration, address receiver) external {
+  function depositByMonths(uint256 amount, uint256 _months, address receiver) external {
+    //require(_months > 5 && _months <= 36, 'Wrong duration');
+    uint32 duration = uint32( _months.mul(avgSecondsMonth) );
+    console.log("depositByMonths", duration);
+    deposit(amount, duration, receiver);
+  }
+
+  function deposit(uint256 amount, uint32 duration, address receiver) internal {
     require(amount >= minLockAmount, "Deposit: amount too small");
     depositToken.safeTransferFrom(msg.sender, address(this), amount);
     uint256 multiplier = getDividendsMultiplier(duration);
@@ -97,7 +120,7 @@ contract SharesTimeLock is Ownable() {
     delete locks[lockId];
     uint256 multiplier = getDividendsMultiplier(lock.lockDuration);
     uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
-    require(dividendsToken.balanceOf(lock.owner) >= dividendShares, 'boostToMax: Wrong shares');
+    require(dividendsToken.balanceOf(lock.owner) >= dividendShares, "boostToMax: Wrong shares number");
 
     uint256 newMultiplier = getDividendsMultiplier(maxLockDuration);
     uint256 newDividendShares = lock.amount.mul(newMultiplier) / 1e18;
