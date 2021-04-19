@@ -90,6 +90,26 @@ contract SharesTimeLock is Ownable() {
     emit Withdrawn(lock.amount, msg.sender);
   }
 
+  function boostToMax(uint256 lockId) external {
+    Lock memory lock = locks[lockId];
+    require(msg.sender == lock.owner, "!owner");
+
+    delete locks[lockId];
+    uint256 multiplier = getDividendsMultiplier(lock.lockDuration);
+    uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
+    require(dividendsToken.balanceOf(lock.owner) >= dividendShares, 'boostToMax: Wrong shares');
+
+    uint256 newMultiplier = getDividendsMultiplier(maxLockDuration);
+    uint256 newDividendShares = lock.amount.mul(newMultiplier) / 1e18;
+    dividendsToken.mint(msg.sender, newDividendShares.sub(dividendShares));
+    locks.push(Lock({
+      amount: lock.amount,
+      lockedAt: uint32(block.timestamp),
+      lockDuration: maxLockDuration,
+      owner: msg.sender
+    }));
+  }
+
   // Eject expired locks
   function eject(uint256[] memory lockIds) external {
     for(uint256 i = 0; i < lockIds.length; i ++) {

@@ -218,5 +218,9 @@ describe('DelegationModule', () => {
   describe('setMinLockAmount()', () => {
     //TODO
   })
+
+  describe('boostToMax()', () => {
+    //TODO
+  })
   
 })
