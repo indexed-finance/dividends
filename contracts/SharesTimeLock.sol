@@ -4,6 +4,7 @@ pragma solidity ^0.7.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ERC20NonTransferableDividendsOwned.sol";
 import "./libraries/LowGasSafeMath.sol";
+import "hardhat/console.sol";
 
 
 contract SharesTimeLock is Ownable() {
@@ -36,20 +37,6 @@ contract SharesTimeLock is Ownable() {
   function getLocksLength() external view returns (uint256) {
     return locks.length;
   }
-
-  // /**
-  //  * @dev Returns the fee that will be paid on a deposit of `amount` which was deposited
-  //  * at `lockedAt` with a timelock of `lockDuration`, if it is withdrawn now.
-  //  *
-  //  * The fractional fee is calculated as the time remaining in the timelock divided by the
-  //  * duration of the lock, multiplied by the maximum early withdrawal fee.
-  //  */
-  // function getEarlyWithdrawalFee(uint256 amount, uint32 lockedAt, uint32 lockDuration) public view returns (uint256 fee) {
-  //   uint32 unlockAt = lockedAt + lockDuration;
-  //   if (block.timestamp >= unlockAt) return 0;
-  //   uint32 timeRemaining = unlockAt - uint32(block.timestamp);
-  //   return amount.mul(timeRemaining).mul(maxEarlyWithdrawalFee) / (uint256(lockDuration) * 1e18);
-  // }
 
   /**
    * @dev Returns the dividends multiplier for `duration` expressed as a fraction of 1e18.
@@ -124,7 +111,6 @@ contract SharesTimeLock is Ownable() {
   /**
   * Setters
   */
-
   function setMinLockAmount(uint256 minLockAmount_) external onlyOwner {
     minLockAmount = minLockAmount_;
     emit MinLockAmountChanged(minLockAmount_);
