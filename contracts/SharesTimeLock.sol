@@ -21,6 +21,8 @@ contract SharesTimeLock is Ownable() {
   uint256 public minLockAmount;
 
   event MinLockAmountChanged(uint256 newLockAmount);
+  event Deposited(uint256 amount, uint32 lockDuration, address owner);
+  event Withdrawn(uint256 amount, address owner);
 
   struct Lock {
     uint256 amount;
@@ -54,8 +56,7 @@ contract SharesTimeLock is Ownable() {
    */
   function getDividendsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration, duration <= maxLockDuration, "OOB");
-    uint256 multiplier = duration.mul(1e18) / maxDuration;
-
+    uint256 multiplier = duration.mul(1e18) / maxLockDuration
     return multiplier;
   }
 
@@ -89,6 +90,7 @@ contract SharesTimeLock is Ownable() {
       lockDuration: duration,
       owner: msg.sender
     }));
+    emit Deposited(amount, duration, msg.sender);
   }
 
   function withdraw(uint256 lockId) external {
@@ -101,6 +103,7 @@ contract SharesTimeLock is Ownable() {
     dividendsToken.burn(msg.sender, dividendShares);
       
     depositToken.safeTransfer(msg.sender, lock.amount);
+    emit Withdrawn(lock.amount, msg.sender);
   }
 
   // Eject expired locks
