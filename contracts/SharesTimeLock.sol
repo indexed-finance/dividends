@@ -53,8 +53,8 @@ contract SharesTimeLock is Ownable() {
    * @dev Returns the dividends multiplier for `duration` expressed as a fraction of 1e18.
    */
   function getDividendsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
-    require(duration >= minLockDuration, duration <= maxLockDuration, "OOB");
-    uint256 multiplier = duration.mul(1e18) / maxDuration;
+    require(duration >= minLockDuration && duration <= maxLockDuration, "OOB");
+    uint256 multiplier = uint256(duration).mul(1e18) / maxLockDuration;
 
     return multiplier;
   }
