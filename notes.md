@@ -33,3 +33,4 @@ No voting power decay on chain, if we want that we can add in an offchain snapsh
 - remove early exit fee
 - remove delegate
 - change the multiplier function to do 1*MAX_LOCK = 1
+- Min staking amount (amount tbd or setter)
