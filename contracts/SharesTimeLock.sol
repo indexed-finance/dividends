@@ -18,6 +18,8 @@ contract SharesTimeLock is Ownable() {
 
   uint32 public immutable maxLockDuration;
 
+  uint256 public minLockAmount;
+
   // /**
   //  * @dev Maximum early withdrawal fee expressed as a fraction of 1e18.
   //  * This is the fee paid if tokens are withdrawn immediately after being locked.
@@ -28,6 +30,8 @@ contract SharesTimeLock is Ownable() {
    * @dev Maximum dividends multiplier for a lock duration of `maxLockDuration`
    */
   uint256 public immutable maxDividendsBonusMultiplier;
+
+  event MinLockAmountChanged(uint256 newLockAmount);
 
   struct Lock {
     uint256 amount;
@@ -81,7 +85,8 @@ contract SharesTimeLock is Ownable() {
     ERC20NonTransferableDividendsOwned dividendsToken_,
     uint32 minLockDuration_,
     uint32 maxLockDuration_,
-    uint256 maxDividendsBonusMultiplier_
+    uint256 maxDividendsBonusMultiplier_,
+    uint256 minLockAmount_
   ) payable {
     dividendsToken = dividendsToken_;
     depositToken = depositToken_;
@@ -96,6 +101,7 @@ contract SharesTimeLock is Ownable() {
   // }
 
   function deposit(uint256 amount, uint32 duration) external {
+    require(amount >= minLockAmount, "Lock amount too small");
     depositToken.safeTransferFrom(msg.sender, address(this), amount);
     uint256 multiplier = getDividendsMultiplier(duration);
     uint256 dividendShares = amount.mul(multiplier) / 1e18;
@@ -136,5 +142,10 @@ contract SharesTimeLock is Ownable() {
 
       depositToken.safeTransfer(lock.owner, lock.amount);
     }
+  }
+
+  function setMinLockAmount(uint256 minLockAmount_) external onlyOwner {
+    minLockAmount = minLockAmount_;
+    emit MinLockAmountChanged(minLockAmount_);
   }
 }

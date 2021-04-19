@@ -25,6 +25,7 @@ describe('DelegationModule', () => {
       dividendsToken.address,
       duration.days(30),
       duration.days(90),
+      toBigNumber(1),
       toBigNumber(1)
     )) as SharesTimeLock
     await depositToken.mint(wallet.address, toBigNumber(10))
@@ -41,6 +42,7 @@ describe('DelegationModule', () => {
         duration.days(30),
         duration.days(30),
         toBigNumber(1),
+        toBigNumber(1)
       )).to.be.revertedWith('min>=max')
     })
 
