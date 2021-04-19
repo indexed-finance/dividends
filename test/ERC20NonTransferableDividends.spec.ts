@@ -4,12 +4,12 @@ import {  TestERC20NonTransferableDividends } from '../typechain/TestERC20NonTra
 import { POINTS_MULTIPLIER, toBigNumber } from './shared/utils';
 import { BigNumber } from 'ethers';
 
-describe('ERC20DividendBearing', () => {
+describe('ERC20NonTransferableDividendBearing', () => {
   let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
   let erc20: TestERC20NonTransferableDividends;
 
   beforeEach('Deploy TestERC20Dividends', async () => {
-    const factory = await ethers.getContractFactory('TestERC20Dividends')
+    const factory = await ethers.getContractFactory('TestERC20NonTransferableDividends')
     erc20 = (await factory.deploy()) as TestERC20NonTransferableDividends;
   })
 

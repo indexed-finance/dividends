@@ -2,7 +2,7 @@
 pragma solidity ^0.7.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./ERC20DividendsOwned.sol";
+import "./ERC20NonTransferableDividendsOwned.sol";
 import "./libraries/LowGasSafeMath.sol";
 
 
@@ -12,7 +12,7 @@ contract SharesTimeLock is Ownable() {
 
   address public immutable depositToken;
 
-  ERC20DividendsOwned public immutable dividendsToken;
+  ERC20NonTransferableDividendsOwned public immutable dividendsToken;
 
   uint32 public immutable minLockDuration;
 
@@ -70,7 +70,7 @@ contract SharesTimeLock is Ownable() {
 
   constructor(
     address depositToken_,
-    ERC20DividendsOwned dividendsToken_,
+    ERC20NonTransferableDividendsOwned dividendsToken_,
     uint32 minLockDuration_,
     uint32 maxLockDuration_,
     uint256 maxDividendsBonusMultiplier_

@@ -1,8 +1,9 @@
 import { ethers, waffle } from 'hardhat';
 import { expect } from "chai";
 import { TestERC20 } from '../typechain/TestERC20';
-import { ERC20DividendsOwned } from '../typechain/ERC20DividendsOwned';
+import { ERC20NonTransferableDividendsOwned } from '../typechain/ERC20NonTransferableDividendsOwned';
 import { SharesTimeLock } from '../typechain/SharesTimeLock';
+import { SharesTimeLock__factory } from '../typechain/factories/SharesTimeLock__factory';
 import { toBigNumber } from './shared/utils';
 import { advanceBlock, duration, latest, setNextTimestamp } from './shared/time';
 import { constants } from 'ethers';
@@ -11,21 +12,20 @@ describe('DelegationModule', () => {
   let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
   let timeLock: SharesTimeLock;
   let depositToken: TestERC20
-  let dividendsToken: ERC20DividendsOwned
+  let dividendsToken: ERC20NonTransferableDividendsOwned
   
   beforeEach('Deploy fixtures', async () => {
     const erc20Factory = await ethers.getContractFactory('TestERC20')
     depositToken = (await erc20Factory.deploy('Test', 'Test')) as TestERC20
-    const dividendsFactory = await ethers.getContractFactory('ERC20DividendsOwned')
-    dividendsToken = (await dividendsFactory.deploy(depositToken.address, 'dTest', 'dTest')) as ERC20DividendsOwned
-    const factory = await ethers.getContractFactory('SharesTimeLock')
+    const dividendsFactory = await ethers.getContractFactory('ERC20NonTransferableDividendsOwned')
+    dividendsToken = (await dividendsFactory.deploy(depositToken.address, 'dTest', 'dTest')) as ERC20NonTransferableDividendsOwned
+    const factory = await ethers.getContractFactory('SharesTimeLock') as SharesTimeLock__factory;
     timeLock = (await factory.deploy(
       depositToken.address,
       dividendsToken.address,
       duration.days(30),
       duration.days(90),
-      toBigNumber(1),
-      toBigNumber(2, 17) // 20%
+      toBigNumber(1)
     )) as SharesTimeLock
     await depositToken.mint(wallet.address, toBigNumber(10))
     await depositToken.approve(timeLock.address, toBigNumber(10))
@@ -33,27 +33,14 @@ describe('DelegationModule', () => {
   })
 
   describe('Constructor', () => {
-    it('Should revert if maxEarlyWithdrawalFee > 1', async () => {
-      const factory = await ethers.getContractFactory('SharesTimeLock')
-      await expect(factory.deploy(
-        depositToken.address,
-        dividendsToken.address,
-        duration.days(30),
-        duration.days(90),
-        toBigNumber(1),
-        toBigNumber(2)
-      )).to.be.revertedWith('maxFee')
-    })
-
     it('Should revert if maxLockDuration <= minLockDuration', async () => {
-      const factory = await ethers.getContractFactory('SharesTimeLock')
+      const factory = await ethers.getContractFactory('SharesTimeLock') as SharesTimeLock__factory
       await expect(factory.deploy(
         depositToken.address,
         dividendsToken.address,
         duration.days(30),
         duration.days(30),
         toBigNumber(1),
-        toBigNumber(1)
       )).to.be.revertedWith('min>=max')
     })
 
@@ -77,33 +64,6 @@ describe('DelegationModule', () => {
       it('maxDividendsBonusMultiplier', async () => {
         expect(await timeLock.maxDividendsBonusMultiplier()).to.eq(toBigNumber(1))
       })
-  
-      it('maxEarlyWithdrawalFee', async () => {
-        expect(await timeLock.maxEarlyWithdrawalFee()).to.eq(toBigNumber(2, 17))
-      })
-    })
-  })
-
-  describe('getEarlyWithdrawalFee()', () => {
-    it('Should return 0 if unlockAt is <= now', async () => {
-      const timestamp = await latest()
-      expect(
-        await timeLock.getEarlyWithdrawalFee(toBigNumber(1), timestamp - 100, 100)
-      ).to.eq(0)
-    })
-
-    it('Should charge max fee if locked in same block', async () => {
-      const timestamp = await latest()
-      expect(
-        await timeLock.getEarlyWithdrawalFee(toBigNumber(1), timestamp, 100)
-      ).to.eq(toBigNumber(2, 17))
-    })
-
-    it('Should charge fee proportional to amount of duration elapsed', async () => {
-      const timestamp = await latest()
-      expect(
-        await timeLock.getEarlyWithdrawalFee(toBigNumber(1), timestamp - 50, 100)
-      ).to.eq(toBigNumber(1, 17))
     })
   })
 
@@ -129,19 +89,6 @@ describe('DelegationModule', () => {
     })
   })
 
-  describe('withdrawFees()', () => {
-    it('Should revert if not owner', async () => {
-      await expect(timeLock.connect(wallet1).withdrawFees(wallet1.address))
-        .to.be.revertedWith('Ownable: caller is not the owner')
-    })
-
-    it('Should withdraw entire balance of depositToken', async () => {
-      await depositToken.mint(timeLock.address, toBigNumber(10))
-      await timeLock.withdrawFees(wallet1.address)
-      expect(await depositToken.balanceOf(wallet1.address)).to.eq(toBigNumber(10))
-    })
-  })
-
   describe('deposit()', () => {
     it('Should revert if transfer fails', async () => {
       await expect(
@@ -161,12 +108,11 @@ describe('DelegationModule', () => {
       ).to.be.revertedWith('OOB')
     })
 
-    it('Should deposit amount to the sub-delegation module of the caller', async () => {
+    it('Should deposit amount to sharesTimeLock contract', async () => {
       await timeLock.deposit(toBigNumber(5), duration.days(30))
-      const delegationModule = await timeLock.computeSubDelegationAddress(wallet.address)
-      expect(await depositToken.balanceOf(delegationModule)).to.eq(toBigNumber(5))
+      expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(5))
       await timeLock.deposit(toBigNumber(5), duration.days(30))
-      expect(await depositToken.balanceOf(delegationModule)).to.eq(toBigNumber(10))
+      expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(10))
     })
 
     it('Should push to locks', async () => {
@@ -196,13 +142,14 @@ describe('DelegationModule', () => {
       await expect(timeLock.withdraw(1)).to.be.reverted
     })
 
-    it('Should revert if caller does not have all dividend tokens minted', async () => {
-      await timeLock.deposit(toBigNumber(5), duration.days(30))
-      await dividendsToken.transfer(wallet1.address, 1)
-      await expect(
-        timeLock.withdraw(0)
-      ).to.be.revertedWith('ERC20: burn amount exceeds balance')
-    })
+    // NOTE: shares are no longer transferable so this check is redundant
+    // it('Should revert if caller does not have all dividend tokens minted', async () => {
+    //   await timeLock.deposit(toBigNumber(5), duration.days(30))
+    //   await dividendsToken.transfer(wallet1.address, 1)
+    //   await expect(
+    //     timeLock.withdraw(0)
+    //   ).to.be.revertedWith('ERC20: burn amount exceeds balance')
+    // })
 
     it('Should revert if caller is not the owner', async () => {
       await timeLock.deposit(toBigNumber(5), duration.days(30))
@@ -221,14 +168,13 @@ describe('DelegationModule', () => {
           .withArgs(wallet.address, constants.AddressZero, toBigNumber(5))
       })
   
-      it('Should withdraw full deposit from sub-delegation module to the caller', async () => {
+      it('Should withdraw full deposit from SharesTimeLock to the caller', async () => {
         const timestamp = await latest()
         await timeLock.deposit(toBigNumber(5), duration.days(30))
         await setNextTimestamp(timestamp + duration.days(100))
-        const delegationModule = await timeLock.computeSubDelegationAddress(wallet.address)
         await expect(timeLock.withdraw(0))
           .to.emit(depositToken, 'Transfer')
-          .withArgs(delegationModule, wallet.address, toBigNumber(5))
+          .withArgs(timeLock.address, wallet.address, toBigNumber(5))
       })
   
       it('Should delete lock', async () => {
@@ -244,51 +190,12 @@ describe('DelegationModule', () => {
     })
 
     describe('When timelock has not passed', () => {
-      it('Should burn dividends token from caller', async () => {
-        const timestamp = await latest()
-        await timeLock.deposit(toBigNumber(5), duration.days(30))
-        await setNextTimestamp(timestamp + duration.days(100))
-        await expect(timeLock.withdraw(0))
-          .to.emit(dividendsToken, 'Transfer')
-          .withArgs(wallet.address, constants.AddressZero, toBigNumber(5))
-      })
-  
-      it('Should withdraw full deposit from sub-delegation to the timelock contract', async () => {
-        await timeLock.deposit(toBigNumber(5), duration.days(30))
-        const delegationModule = await timeLock.computeSubDelegationAddress(wallet.address)
-        await expect(timeLock.withdraw(0))
-          .to.emit(depositToken, 'Transfer')
-          .withArgs(delegationModule, timeLock.address, toBigNumber(5))
-      })
-  
-      it('Should transfer deposit less fees to the caller', async () => {
+      it('Should revert on early withdraw', async () => {
         await timeLock.deposit(toBigNumber(5), duration.days(30))
         const timestamp = await latest()
         await setNextTimestamp(timestamp + duration.days(1))
-        const fee = toBigNumber(1).mul(29).div(30)
-        await expect(timeLock.withdraw(0))
-          .to.emit(depositToken, 'Transfer')
-          .withArgs(timeLock.address, wallet.address, toBigNumber(5).sub(fee))
-        expect(await depositToken.balanceOf(timeLock.address)).to.eq(fee)
+        await expect(timeLock.withdraw(0)).to.be.revertedWith("lock not expired")
       })
-  
-      it('Should delete lock', async () => {
-        await timeLock.deposit(toBigNumber(5), duration.days(30))
-        await timeLock.withdraw(0)
-        expect(await timeLock.locks(0)).to.deep.eq([
-          constants.Zero, 0, 0, constants.AddressZero
-        ])
-        expect(await timeLock.getLocksLength()).to.eq(1)
-      })
-    })
-  })
-
-  describe('delegate()', () => {
-    it('Should delegate from sub-delegation module for caller to delegatee', async () => {
-      const delegationModule = await timeLock.computeSubDelegationAddress(wallet.address)
-      await expect(timeLock.delegate(wallet1.address))
-        .to.emit(depositToken, 'Delegate')
-        .withArgs(delegationModule, wallet1.address)
     })
   })
 })
