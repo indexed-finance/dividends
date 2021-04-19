@@ -4,6 +4,7 @@ pragma solidity ^0.7.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ERC20NonTransferableDividendsOwned.sol";
 import "./libraries/LowGasSafeMath.sol";
+import "hardhat/console.sol";
 
 
 contract SharesTimeLock is Ownable() {
@@ -37,27 +38,12 @@ contract SharesTimeLock is Ownable() {
     return locks.length;
   }
 
-  // /**
-  //  * @dev Returns the fee that will be paid on a deposit of `amount` which was deposited
-  //  * at `lockedAt` with a timelock of `lockDuration`, if it is withdrawn now.
-  //  *
-  //  * The fractional fee is calculated as the time remaining in the timelock divided by the
-  //  * duration of the lock, multiplied by the maximum early withdrawal fee.
-  //  */
-  // function getEarlyWithdrawalFee(uint256 amount, uint32 lockedAt, uint32 lockDuration) public view returns (uint256 fee) {
-  //   uint32 unlockAt = lockedAt + lockDuration;
-  //   if (block.timestamp >= unlockAt) return 0;
-  //   uint32 timeRemaining = unlockAt - uint32(block.timestamp);
-  //   return amount.mul(timeRemaining).mul(maxEarlyWithdrawalFee) / (uint256(lockDuration) * 1e18);
-  // }
-
   /**
    * @dev Returns the dividends multiplier for `duration` expressed as a fraction of 1e18.
    */
   function getDividendsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
-    require(duration >= minLockDuration && duration <= maxLockDuration, "OOB");
+    require(duration >= minLockDuration && duration <= maxLockDuration, "getDividendsMultiplier: Duration not correct");
     uint256 multiplier = uint256(duration).mul(1e18) / maxLockDuration;
-
     return multiplier;
   }
 
@@ -73,25 +59,22 @@ contract SharesTimeLock is Ownable() {
     require(minLockDuration_ < maxLockDuration_, "min>=max");
     minLockDuration = minLockDuration_;
     maxLockDuration = maxLockDuration_;
+    minLockAmount = minLockAmount_;
   }
 
-  // function withdrawFees(address to) external onlyOwner {
-  //   depositToken.safeTransfer(to, IERC20(depositToken).balanceOf(address(this)));
-  // }
-
-  function deposit(uint256 amount, uint32 duration) external {
-    require(amount >= minLockAmount, "Lock amount too small");
+  function deposit(uint256 amount, uint32 duration, address receiver) external {
+    require(amount >= minLockAmount, "Deposit: amount too small");
     depositToken.safeTransferFrom(msg.sender, address(this), amount);
     uint256 multiplier = getDividendsMultiplier(duration);
     uint256 dividendShares = amount.mul(multiplier) / 1e18;
-    dividendsToken.mint(msg.sender, dividendShares);
+    dividendsToken.mint(receiver, dividendShares);
     locks.push(Lock({
       amount: amount,
       lockedAt: uint32(block.timestamp),
       lockDuration: duration,
-      owner: msg.sender
+      owner: receiver
     }));
-    emit Deposited(amount, duration, msg.sender);
+    emit Deposited(amount, duration, receiver);
   }
 
   function withdraw(uint256 lockId) external {
@@ -125,6 +108,9 @@ contract SharesTimeLock is Ownable() {
     }
   }
 
+  /**
+  * Setters
+  */
   function setMinLockAmount(uint256 minLockAmount_) external onlyOwner {
     minLockAmount = minLockAmount_;
     emit MinLockAmountChanged(minLockAmount_);
