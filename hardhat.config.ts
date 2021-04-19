@@ -14,10 +14,11 @@ if(process.env.COMPILE_ONLY != "1") {
   require('./tasks/deploy');
 }
 
-const configureNetwork = (network: string, chainId: number) => ({
+const configureNetwork = (network: string, chainId: number, gasPrice?: number) => ({
   url: `https://${network}.infura.io/v3/${process.env.INFURA_API_KEY}`,
   chainId,
-  accounts: [process.env[`${network.toUpperCase()}_PVT_KEY`] ?? randomBytes(32).toString('hex')]
+  accounts: [process.env[`${network.toUpperCase()}_PVT_KEY`] ?? randomBytes(32).toString('hex')],
+  gasPrice: gasPrice ?? undefined
 });
 
 export default {

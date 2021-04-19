@@ -4,7 +4,8 @@ import { ERC20NonTransferableDividendsOwned__factory } from "../typechain/factor
 import { SharesTimeLock__factory } from "../typechain/factories/SharesTimeLock__factory";
 
 task("deploy-staking")
-    .addParam("token")
+    .addParam("depositToken")
+    .addParam("rewardToken")
     .addParam("name")
     .addParam("symbol")
     .addParam("minLockDuration")
@@ -14,14 +15,14 @@ task("deploy-staking")
         const signer = (await ethers.getSigners())[0];
 
         const dToken = await (new ERC20NonTransferableDividendsOwned__factory(signer)).deploy(
-            taskArgs.token,
+            taskArgs.rewardToken,
             taskArgs.name,
             taskArgs.symbol
         );   
         console.log(`dToken deployed at: ${dToken.address}`);
 
         const sharesTimeLock = await (new SharesTimeLock__factory(signer)).deploy(
-            taskArgs.token,
+            taskArgs.depositToken,
             dToken.address,
             taskArgs.minLockDuration,
             taskArgs.maxLockDuration,
@@ -31,7 +32,7 @@ task("deploy-staking")
 
         const tx = await dToken.transferOwnership(sharesTimeLock.address);
         console.log(`dToken ownership transfered at ${tx.hash}`);
-
-        console.log(`To verify dToken run: npx hardhat verify ${dToken.address} ${taskArgs.token} ${taskArgs.name} ${taskArgs.symbol} --network ${network.name}`);
-        console.log(`To verify sharesTimeLock run: npx hardhat verify ${sharesTimeLock.address} ${taskArgs.token} ${dToken.address} ${taskArgs.minLockDuration} ${taskArgs.maxLockDuration} ${taskArgs.minLockAmount} --network ${network.name}`);
+        
+        console.log(`To verify dToken run: npx hardhat verify ${dToken.address} ${taskArgs.rewardToken} ${taskArgs.name} ${taskArgs.symbol} --network ${network.name}`);
+        console.log(`To verify sharesTimeLock run: npx hardhat verify ${sharesTimeLock.address} ${taskArgs.depositToken} ${dToken.address} ${taskArgs.minLockDuration} ${taskArgs.maxLockDuration} ${taskArgs.minLockAmount} --network ${network.name}`);
 });
