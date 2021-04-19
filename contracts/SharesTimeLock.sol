@@ -72,6 +72,7 @@ contract SharesTimeLock is Ownable() {
     require(minLockDuration_ < maxLockDuration_, "min>=max");
     minLockDuration = minLockDuration_;
     maxLockDuration = maxLockDuration_;
+    minLockAmount = minLockAmount_;
   }
 
   function deposit(uint256 amount, uint32 duration, address receiver) external {
