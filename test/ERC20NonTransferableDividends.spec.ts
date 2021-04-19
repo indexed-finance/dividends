@@ -4,7 +4,7 @@ import {  TestERC20NonTransferableDividends } from '../typechain/TestERC20NonTra
 import { POINTS_MULTIPLIER, toBigNumber } from './shared/utils';
 import { BigNumber } from 'ethers';
 
-describe.only('ERC20DividendBearing', () => {
+describe('ERC20DividendBearing', () => {
   let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
   let erc20: TestERC20NonTransferableDividends;
 
