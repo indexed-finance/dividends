@@ -20,17 +20,6 @@ contract SharesTimeLock is Ownable() {
 
   uint256 public minLockAmount;
 
-  // /**
-  //  * @dev Maximum early withdrawal fee expressed as a fraction of 1e18.
-  //  * This is the fee paid if tokens are withdrawn immediately after being locked.
-  //  */
-  // uint256 public immutable maxEarlyWithdrawalFee;
-
-  /**
-   * @dev Maximum dividends multiplier for a lock duration of `maxLockDuration`
-   */
-  uint256 public immutable maxDividendsBonusMultiplier;
-
   event MinLockAmountChanged(uint256 newLockAmount);
 
   struct Lock {
@@ -64,20 +53,10 @@ contract SharesTimeLock is Ownable() {
    * @dev Returns the dividends multiplier for `duration` expressed as a fraction of 1e18.
    */
   function getDividendsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
-    require(duration >= minLockDuration && duration <= maxLockDuration, "OOB");
-    uint256 durationRange = maxLockDuration - minLockDuration;
-    uint32 overMinimum = duration - minLockDuration;
+    require(duration >= minLockDuration, duration <= maxLockDuration, "OOB");
+    uint256 multiplier = duration.mul(1e18) / maxDuration;
 
-    uint256 multiplier = uint256(1e18).add(
-      maxDividendsBonusMultiplier.mul(overMinimum) / durationRange
-    );
-
-    uint256 maxMultiplier = uint256(1e18).add(
-      maxDividendsBonusMultiplier
-    );
-
-    uint256 normalisedMultiplier = multiplier.mul(1e18) / (maxMultiplier);
-    return normalisedMultiplier;
+    return multiplier;
   }
 
   constructor(
@@ -85,7 +64,6 @@ contract SharesTimeLock is Ownable() {
     ERC20NonTransferableDividendsOwned dividendsToken_,
     uint32 minLockDuration_,
     uint32 maxLockDuration_,
-    uint256 maxDividendsBonusMultiplier_,
     uint256 minLockAmount_
   ) payable {
     dividendsToken = dividendsToken_;
@@ -93,7 +71,6 @@ contract SharesTimeLock is Ownable() {
     require(minLockDuration_ < maxLockDuration_, "min>=max");
     minLockDuration = minLockDuration_;
     maxLockDuration = maxLockDuration_;
-    maxDividendsBonusMultiplier = maxDividendsBonusMultiplier_;
   }
 
   // function withdrawFees(address to) external onlyOwner {
