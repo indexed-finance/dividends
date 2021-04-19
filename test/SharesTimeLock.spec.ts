@@ -76,16 +76,16 @@ describe('DelegationModule', () => {
       await expect(timeLock.getDividendsMultiplier(duration.days(91))).to.be.revertedWith('OOB')
     })
 
-    it('Should return 1 for minimum duration', async () => {
-      expect(await timeLock.getDividendsMultiplier(duration.days(30))).to.eq(toBigNumber(1))
+    it('Should return 0.5 for min duration in this case', async () => {
+      expect(await timeLock.getDividendsMultiplier(duration.days(30))).to.eq(toBigNumber(5, 17))
     })
 
-    it('Should return 1 + bonus for maximum duration', async () => {
-      expect(await timeLock.getDividendsMultiplier(duration.days(90))).to.eq(toBigNumber(2))
+    it('Should return 1 for maximum duration', async () => {
+      expect(await timeLock.getDividendsMultiplier(duration.days(90))).to.eq(toBigNumber(1))
     })
 
-    it('Should return 1 + bonus/2 for duration between min/max', async () => {
-      expect(await timeLock.getDividendsMultiplier(duration.days(60))).to.eq(toBigNumber(15, 17))
+    it('Should return 0.75 for duration between min/max in this case', async () => {
+      expect(await timeLock.getDividendsMultiplier(duration.days(60))).to.eq(toBigNumber(75, 16))
     })
   })
 
@@ -130,10 +130,10 @@ describe('DelegationModule', () => {
     it('Should mint amount times multiplier', async () => {
       await expect(timeLock.deposit(toBigNumber(5), duration.days(30)))
         .to.emit(dividendsToken, 'Transfer')
-        .withArgs(constants.AddressZero, wallet.address, toBigNumber(5))
+        .withArgs(constants.AddressZero, wallet.address, toBigNumber(25, 17))
       await expect(timeLock.deposit(toBigNumber(5), duration.days(90)))
         .to.emit(dividendsToken, 'Transfer')
-        .withArgs(constants.AddressZero, wallet.address, toBigNumber(10))
+        .withArgs(constants.AddressZero, wallet.address, toBigNumber(5, 18))
     })
   })
 
@@ -165,7 +165,7 @@ describe('DelegationModule', () => {
         await setNextTimestamp(timestamp + duration.days(100))
         await expect(timeLock.withdraw(0))
           .to.emit(dividendsToken, 'Transfer')
-          .withArgs(wallet.address, constants.AddressZero, toBigNumber(5))
+          .withArgs(wallet.address, constants.AddressZero, toBigNumber(25,17))
       })
   
       it('Should withdraw full deposit from SharesTimeLock to the caller', async () => {

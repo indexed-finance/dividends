@@ -63,9 +63,17 @@ contract SharesTimeLock is Ownable() {
     require(duration >= minLockDuration && duration <= maxLockDuration, "OOB");
     uint256 durationRange = maxLockDuration - minLockDuration;
     uint32 overMinimum = duration - minLockDuration;
-    return uint256(1e18).add(
+
+    uint256 multiplier = uint256(1e18).add(
       maxDividendsBonusMultiplier.mul(overMinimum) / durationRange
     );
+
+    uint256 maxMultiplier = uint256(1e18).add(
+      maxDividendsBonusMultiplier
+    );
+
+    uint256 normalisedMultiplier = multiplier.mul(1e18) / (maxMultiplier);
+    return normalisedMultiplier;
   }
 
   constructor(
