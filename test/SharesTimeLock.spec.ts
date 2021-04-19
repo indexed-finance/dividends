@@ -203,4 +203,13 @@ describe('DelegationModule', () => {
       })
     })
   })
+
+  describe('eject()', () => {
+    //TODO
+  })
+
+  describe('setMinLockAmount()', () => {
+    //TODO
+  })
+  
 })
