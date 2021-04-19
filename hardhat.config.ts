@@ -10,10 +10,15 @@ import 'hardhat-gas-reporter'
 
 import { randomBytes } from 'crypto';
 
-const configureNetwork = (network: string, chainId: number) => ({
+if(process.env.COMPILE_ONLY != "1") {
+  require('./tasks/deploy');
+}
+
+const configureNetwork = (network: string, chainId: number, gasPrice?: number) => ({
   url: `https://${network}.infura.io/v3/${process.env.INFURA_API_KEY}`,
   chainId,
-  accounts: [process.env[`${network.toUpperCase()}_PVT_KEY`] ?? randomBytes(32).toString('hex')]
+  accounts: [process.env[`${network.toUpperCase()}_PVT_KEY`] ?? randomBytes(32).toString('hex')],
+  gasPrice: gasPrice ?? undefined
 });
 
 export default {
@@ -31,7 +36,8 @@ export default {
     },
     mainnet: configureNetwork('mainnet', 1),
     kovan: configureNetwork('kovan', 42),
-    rinkeby: configureNetwork('rinkeby', 4)
+    rinkeby: configureNetwork('rinkeby', 4),
+    goerli: configureNetwork('goerli', 5),
   },
   solidity: {
     version: '0.7.6',
