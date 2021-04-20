@@ -267,7 +267,7 @@ describe('DelegationModule', () => {
     //TODO
   })
 
-  describe.only('boostToMax()', () => {
+  describe('boostToMax()', () => {
     it('Should boost the lock to max time', async () => {
       await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
       let timestamp = await latest()
