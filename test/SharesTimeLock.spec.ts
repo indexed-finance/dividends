@@ -304,7 +304,7 @@ describe('DelegationModule', () => {
       expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
     })
 
-    it.only('Should not mint dividend tokens if boost was already at max', async () => {
+    it('Should not mint dividend tokens if boost was already at max', async () => {
       const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[36].toString()));
       await timeLock.depositByMonths(toBigNumber(5), 36, wallet.address)
       expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
