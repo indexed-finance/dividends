@@ -132,7 +132,6 @@ describe('DelegationModule', () => {
       it('Should return correct ratio for month ' + index, async () => {
         expect(await timeLock.getDividendsMultiplier(duration.months(index))).to.eq(curveRatio[index].toString())
       })
-      
     }
     
   })
@@ -268,8 +267,77 @@ describe('DelegationModule', () => {
     //TODO
   })
 
-  describe('boostToMax()', () => {
-    //TODO
+  describe.only('boostToMax()', () => {
+    it('Should boost the lock to max time', async () => {
+      await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
+      let timestamp = await latest()
+      expect(await timeLock.locks(0)).to.deep.eq([
+        toBigNumber(5),
+        timestamp,
+        MINTIME,
+        wallet.address
+      ])
+
+      const later = timestamp + duration.months(1);
+      await setNextTimestamp(later);
+
+      await timeLock.boostToMax(0);
+
+      //Check new lock is correct
+      expect(await timeLock.locks(1)).to.deep.eq([
+        toBigNumber(5),
+        later,
+        MAXTIME,
+        wallet.address
+      ])
+
+      //Check new dividend balance is correct
+      const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[36].toString()));
+      expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
+      
+      //Check the lock has been deleted
+      expect(await timeLock.locks(0)).to.deep.eq([
+        constants.Zero, 0, 0, constants.AddressZero
+      ])
+      
+      //Check the total amount of locks
+      expect(await timeLock.getLocksLength()).to.eq(2)
+    })
+
+    it('Should mint the remaining dividend tokens', async () => {
+      await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
+      let timestamp = await latest()
+      expect(await timeLock.locks(0)).to.deep.eq([
+        toBigNumber(5),
+        timestamp,
+        MINTIME,
+        wallet.address
+      ])
+
+      const later = timestamp + duration.months(1);
+      await setNextTimestamp(later);
+
+      await timeLock.boostToMax(0);
+      //Check new dividend balance is correct
+      const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[36].toString()));
+      expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
+    })
+
+    it('Should delete the previous lock', async () => {
+      await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
+      let timestamp = await latest()
+      const later = timestamp + duration.months(1);
+      await setNextTimestamp(later);
+      await timeLock.boostToMax(0);
+      
+      //Check the lock has been deleted
+      expect(await timeLock.locks(0)).to.deep.eq([
+        constants.Zero, 0, 0, constants.AddressZero
+      ])
+      
+      //Check the total amount of locks
+      expect(await timeLock.getLocksLength()).to.eq(2)
+    })
   })
   
 })
