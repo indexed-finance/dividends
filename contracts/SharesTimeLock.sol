@@ -23,7 +23,7 @@ contract SharesTimeLock is Ownable() {
 
   uint256 private constant avgSecondsMonth = 2628000;
 
-  /**
+  /*
     Mapping of coefficient for the staking curve
     y=x/k*log(x)
     where `x` is the staking time
@@ -47,7 +47,7 @@ contract SharesTimeLock is Ownable() {
     258469880674300000, // 13
     286394488282000000, // 14
     314873248847800000, // 15
-    343869161986300000, //16
+    343869161986300000, // 16
     373349862059400000, // 17
     403286798191400000, // 18
     433654597035900000, // 19
@@ -94,7 +94,6 @@ contract SharesTimeLock is Ownable() {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getDividendsMultiplier: Duration not correct");
     uint256 month = uint256(duration) / avgSecondsMonth;
     uint256 multiplier = maxRatioArray[month];
-
     return multiplier;
   }
 
@@ -117,7 +116,6 @@ contract SharesTimeLock is Ownable() {
   function depositByMonths(uint256 amount, uint256 _months, address receiver) external {
     //require(_months > 5 && _months <= 36, 'Wrong duration');
     uint32 duration = uint32( _months.mul(avgSecondsMonth) );
-    console.log("depositByMonths", duration);
     deposit(amount, duration, receiver);
   }
 
