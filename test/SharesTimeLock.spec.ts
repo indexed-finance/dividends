@@ -290,36 +290,29 @@ describe('DelegationModule', () => {
         MAXTIME,
         wallet.address
       ])
-
-      //Check new dividend balance is correct
-      const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[36].toString()));
-      expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
-      
-      //Check the lock has been deleted
-      expect(await timeLock.locks(0)).to.deep.eq([
-        constants.Zero, 0, 0, constants.AddressZero
-      ])
-      
-      //Check the total amount of locks
-      expect(await timeLock.getLocksLength()).to.eq(2)
     })
 
     it('Should mint the remaining dividend tokens', async () => {
       await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
       let timestamp = await latest()
-      expect(await timeLock.locks(0)).to.deep.eq([
-        toBigNumber(5),
-        timestamp,
-        MINTIME,
-        wallet.address
-      ])
-
       const later = timestamp + duration.months(1);
       await setNextTimestamp(later);
 
       await timeLock.boostToMax(0);
       //Check new dividend balance is correct
       const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[36].toString()));
+      expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
+    })
+
+    it.only('Should not mint dividend tokens if boost was already at max', async () => {
+      const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[36].toString()));
+      await timeLock.depositByMonths(toBigNumber(5), 36, wallet.address)
+      expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
+      let timestamp = await latest()
+      const later = timestamp + duration.months(1);
+      await setNextTimestamp(later);
+      await timeLock.boostToMax(0);
+      //Check the dividend balance did not change
       expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
     })
 
