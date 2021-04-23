@@ -3,6 +3,9 @@ import { expect } from "chai";
 import {  TestERC20NonTransferableDividends } from '../typechain/TestERC20NonTransferableDividends';
 import { POINTS_MULTIPLIER, toBigNumber } from './shared/utils';
 import { BigNumber } from 'ethers';
+import { createParticipationTree, ParticipationEntry, ParticipationEntryWithLeaf } from '../utils';
+import { MerkleTree } from '../utils/MerkleTree';
+import { parseEther } from 'ethers/lib/utils';
 
 describe('ERC20NonTransferableDividendBearing', () => {
   let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
@@ -119,13 +122,81 @@ describe('ERC20NonTransferableDividendBearing', () => {
     })
 
     it('Updates withdrawnDividends', async () => {
-      await erc20.mint(wallet.address, toBigNumber(5))
-      await erc20.distributeDividends(toBigNumber(10))
+      await erc20.mint(wallet.address, toBigNumber(5));
+      await erc20.distributeDividends(toBigNumber(10));
       await erc20.prepareCollect(wallet.address)
       expect(await erc20.withdrawnDividendsOf(wallet.address)).to.eq(toBigNumber(10))
       expect(await erc20.withdrawableDividendsOf(wallet.address)).to.eq(0)
     })
-  })
+  });
+
+  describe("collect", async() => {
+    const ParticipationTypes = {
+      INACTIVE: 0,
+      YES: 1
+    }
+    
+    const entries: ParticipationEntry[] = [
+      {
+        address: wallet.address,
+        participation: ParticipationTypes.YES
+      },
+      {
+        address: wallet1.address,
+        participation: ParticipationTypes.INACTIVE
+      }
+    ];
+
+    const {merkleTree, leafs} = createParticipationTree(entries);
+
+    describe.only("With participation root set", async() => {
+      let root:string;
+      beforeEach(async() => {
+        root = merkleTree.getRoot();
+        erc20.setParticipationMerkleRoot(root);
+      });
+
+      it("Root should be set", async() => {
+        const rootValue = await erc20.participationMerkleRoot();
+        expect(rootValue).to.eq(root);
+      });
+
+      it("Setting the participationMerkleRoot from a non owner should fail", async() => {
+        await expect(erc20.connect(wallet2).setParticipationMerkleRoot(root)).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("Claiming rewards when you have been actively participating should work", async() => {
+        await erc20.mint(wallet.address, toBigNumber(5));
+        await erc20.distributeDividends(toBigNumber(10));
+        
+        await erc20.collectWithParticipation(merkleTree.getProof(leafs[0].leaf));
+
+        expect(await erc20.withdrawnDividendsOf(wallet.address)).to.eq(toBigNumber(10))
+        expect(await erc20.withdrawableDividendsOf(wallet.address)).to.eq(0)
+      });
+
+      it("Claiming rewards when you have not been actively participating should fail", async() => {
+        await erc20.mint(wallet1.address, toBigNumber(5));
+        await erc20.distributeDividends(toBigNumber(10));
+        
+        await expect(erc20.connect(wallet1).collectWithParticipation(merkleTree.getProof(leafs[1].leaf)))
+          .to.be.revertedWith("collectForWithParticipation: Invalid merkle proof");
+      });
+
+      it("Redistributing rewards should work", async() => {
+        await erc20.mint(wallet1.address, toBigNumber(5));
+        await erc20.mint(wallet.address, toBigNumber(5));
+        await erc20.distributeDividends(toBigNumber(10));
+
+        await erc20.redistribute([wallet1.address], [merkleTree.getProof(leafs[1].leaf)]);
+        
+        expect(await erc20.withdrawnDividendsOf(wallet1.address)).to.eq(toBigNumber(5));
+        // small rounding inacuracy
+        expect(await erc20.withdrawableDividendsOf(wallet1.address)).to.eq(parseEther("2.5").sub(1));
+        expect(await erc20.withdrawableDividendsOf(wallet.address)).to.eq(parseEther("7.5").sub(1));
+      });
+    });
+  });
 
   describe('cumulativeDividendsOf', () => {
     it('Should store total dividends for one user', async () => {

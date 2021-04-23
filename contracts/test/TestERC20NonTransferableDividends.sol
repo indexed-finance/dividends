@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.7.6;
+pragma abicoder v2;
 
-import "../base/ERC20NonTransferableDividends.sol";
+import "../ERC20NonTransferableDividendsOwned.sol";
 
 
-contract TestERC20NonTransferableDividends is ERC20NonTransferableDividends {
-  constructor() ERC20NonTransferableDividends("ERC20Dividends", "DIV") {}
+contract TestERC20NonTransferableDividends is ERC20NonTransferableDividendsOwned {
+  constructor() ERC20NonTransferableDividendsOwned(address(0), "ERC20Dividends", "DIV") {}
 
-  function mint(address account, uint256 amount) external {
+  function mint(address account, uint256 amount) external override {
     _mint(account, amount);
   }
 
-  function burn(address account, uint256 amount) external {
+  function burn(address account, uint256 amount) external override {
     _burn(account, amount);
   }
 

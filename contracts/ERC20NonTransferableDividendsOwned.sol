@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/cryptography/MerkleProof.sol";
 import "./base/ERC20NonTransferableDividends.sol";
 import "./libraries/TransferHelper.sol";
+import "hardhat/console.sol";
 
 
 contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ownable {
@@ -14,7 +15,7 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
   address public immutable token;
   bytes32 public participationMerkleRoot;
 
-  enum ParticipationType{ NO, YES, INACTIVE }
+  enum ParticipationType{ INACTIVE, YES }
 
   modifier participationNeeded {
     require(participationMerkleRoot != bytes32(0), "participationNeeded: merkle root not set");
@@ -34,11 +35,11 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
     token = token_;
   }
 
-  function mint(address to, uint256 amount) external onlyOwner {
+  function mint(address to, uint256 amount) external virtual onlyOwner {
     _mint(to, amount);
   }
 
-  function burn(address from, uint256 amount) external onlyOwner {
+  function burn(address from, uint256 amount) external virtual onlyOwner {
     _burn(from, amount);
   }
 
@@ -52,7 +53,10 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
   }
 
   function collectForWithParticipation(address account, bytes32[] memory proof) public participationNeeded {
-    bytes32 leaf = keccak256(abi.encodePacked(account, ParticipationType.YES));
+    bytes32 leaf = keccak256(abi.encodePacked(account, uint256(ParticipationType.YES)));
+    // console.log("leaf", leaf);
+    console.log("account", account);
+    console.log("participation type", uint256(ParticipationType.YES));
     require(MerkleProof.verify(proof, participationMerkleRoot, leaf), "collectForWithParticipation: Invalid merkle proof");
     uint256 amount = _prepareCollect(account);
     token.safeTransfer(account, amount);
@@ -70,9 +74,9 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
     bytes32 root = participationMerkleRoot;
 
     for(uint256 i = 0; i < accounts.length; i ++) {
-      bytes32 leaf = keccak256(abi.encodePacked(accounts[i], ParticipationType.INACTIVE));
+      bytes32 leaf = keccak256(abi.encodePacked(accounts[i], uint256(ParticipationType.INACTIVE)));
       if(!MerkleProof.verify(proofs[i], root, leaf)) {
-        // skip if prove is invalid
+        // skip if proof is invalid
         continue;
       }
       totalRedistributed += _prepareCollect(accounts[i]);
