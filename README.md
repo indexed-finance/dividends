@@ -2,13 +2,13 @@
 
 ## Core contracts
 
-### [ERC20NonTransferableDividendsOwned.sol](contracts/ERC20NonTransferableDividendsOwned.sol)
+### [ERC20NonTransferableRewardsOwned.sol](contracts/ERC20NonTransferableRewardsOwned.sol)
 
 Contract keeping tracking of voting/reward weights and handling payout of rewards. ERC20 compatible but transfers are disabled.
 
 ### [SharesTimeLock](contracts/SharesTimeLock.sol)
 
-Owner of `ERC20NonTransferableDividendsOwned` and handles the locking and unlocking of `depositToken` and mints/burns `ERC20NonTransferableDividendsOwned` on deposit and withdraw.
+Owner of `ERC20NonTransferableRewardsOwned` and handles the locking and unlocking of `depositToken` and mints/burns `ERC20NonTransferableRewardsOwned` on deposit and withdraw.
 
 ## Overview
 
