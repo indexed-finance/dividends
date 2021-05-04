@@ -15,7 +15,7 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
   address public immutable token;
   bytes32 public participationMerkleRoot;
 
-  event CollectedFor(uint256 amount, address collector, address to, bytes32[] proof);
+  event CollectedFor(uint256 amount, address indexed collector, address indexed to, bytes32[] proof);
 
 
   enum ParticipationType{ INACTIVE, YES }

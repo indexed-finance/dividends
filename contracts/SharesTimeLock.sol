@@ -71,10 +71,10 @@ contract SharesTimeLock is Ownable() {
   ];
 
   event MinLockAmountChanged(uint256 newLockAmount);
-  event Deposited(uint256 amount, uint32 lockDuration, address owner);
-  event Withdrawn(uint256 amount, address owner);
-  event Ejected(uint256 amount, address owner);
-  event BoostedToMax(uint256 amount, address owner);
+  event Deposited(uint256 amount, uint32 lockDuration, address indexed owner);
+  event Withdrawn(uint256 amount, address indexed owner);
+  event Ejected(uint256 amount, address indexed owner);
+  event BoostedToMax(uint256 amount, address indexed owner);
 
   struct Lock {
     uint256 amount;
