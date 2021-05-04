@@ -15,6 +15,9 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
   address public immutable token;
   bytes32 public participationMerkleRoot;
 
+  event CollectedFor(uint256 amount, address collector, address to, bytes32[] proof);
+
+
   enum ParticipationType{ INACTIVE, YES }
 
   modifier participationNeeded {
@@ -60,6 +63,8 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
     require(MerkleProof.verify(proof, participationMerkleRoot, leaf), "collectForWithParticipation: Invalid merkle proof");
     uint256 amount = _prepareCollect(account);
     token.safeTransfer(account, amount);
+
+    emit CollectedFor(amount, msg.sender, account, proof);
   }
 
   function collectWithParticipation(bytes32[] calldata proof) external {
