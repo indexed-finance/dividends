@@ -6,7 +6,7 @@ import "../ERC20NonTransferableRewardsOwned.sol";
 
 
 contract TestERC20NonTransferableRewards is ERC20NonTransferableRewardsOwned {
-  constructor() ERC20NonTransferableRewardsOwned(address(0), "ERC20Rewards", "DIV") {}
+  constructor() {}
 
   function mint(address account, uint256 amount) external override {
     _mint(account, amount);

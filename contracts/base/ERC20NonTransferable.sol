@@ -5,13 +5,13 @@ import "./ERC20.sol";
 
 
 contract ERC20NonTransferable is ERC20 {
-  constructor(
-    string memory name_,
-    string memory symbol_,
-    uint8 decimals_
-  ) ERC20(name_, symbol_, decimals_) {
-    // nothing
-  }
+  // constructor(
+  //   string memory name_,
+  //   string memory symbol_,
+  //   uint8 decimals_
+  // ) ERC20(name_, symbol_, decimals_) {
+  //   // nothing
+  // }
 
   /**
    * @dev Disables all transfer related functions

@@ -2,8 +2,8 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/cryptography/MerkleProof.sol";
+import {OwnableUpgradeable as Ownable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {MerkleProofUpgradeable as MerkleProof} from "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
 import "./base/ERC20NonTransferableRewards.sol";
 import "./libraries/TransferHelper.sol";
 import "hardhat/console.sol";
@@ -12,7 +12,7 @@ import "hardhat/console.sol";
 contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownable {
   using TransferHelper for address;
 
-  address public immutable token;
+  address public token;
   bytes32 public participationMerkleRoot;
 
   event CollectedFor(uint256 amount, address indexed collector, address indexed to, bytes32[] proof);
@@ -30,11 +30,8 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     _;
   }
 
-  constructor(
-    address token_,
-    string memory name_,
-    string memory symbol_
-  ) ERC20NonTransferableRewards(name_, symbol_) Ownable() {
+  function initialize(address token_) public {
+    require(token == address(0), "Already Initialized");
     token = token_;
   }
 

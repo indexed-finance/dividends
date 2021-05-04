@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable as Ownable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./ERC20NonTransferableRewardsOwned.sol";
 import "./libraries/LowGasSafeMath.sol";
 import "hardhat/console.sol";
@@ -13,8 +13,9 @@ contract SharesTimeLock is Ownable() {
 
   address public immutable depositToken;
 
-  ERC20NonTransferableRewardsOwned public immutable rewardsToken;
+  ERC20NonTransferableRewardsOwned public immutable dividendsToken;
 
+  // min amount in 
   uint32 public immutable minLockDuration;
 
   uint32 public immutable maxLockDuration;
@@ -90,28 +91,28 @@ contract SharesTimeLock is Ownable() {
   }
 
   /**
-   * @dev Returns the rewards multiplier for `duration` expressed as a fraction of 1e18.
+   * @dev Returns the dividends multiplier for `duration` expressed as a fraction of 1e18.
    */
   function getRewardsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getRewardsMultiplier: Duration not correct");
     uint256 month = uint256(duration) / avgSecondsMonth;
-    multiplier = maxRatioArray[month];
+    uint256 multiplier = maxRatioArray[month];
+    return multiplier;
   }
 
-  constructor(
+  function initialize(
     address depositToken_,
-    ERC20NonTransferableRewardsOwned rewardsToken_,
+    ERC20NonTransferableRewardsOwned dividendsToken_,
     uint32 minLockDuration_,
     uint32 maxLockDuration_,
     uint256 minLockAmount_
-  ) payable {
-    rewardsToken = rewardsToken_;
+  ) public {
+    dividendsToken = dividendsToken_;
     depositToken = depositToken_;
     require(minLockDuration_ < maxLockDuration_, "min>=max");
     minLockDuration = minLockDuration_;
     maxLockDuration = maxLockDuration_;
     minLockAmount = minLockAmount_;
-    
   }
 
   function depositByMonths(uint256 amount, uint256 _months, address receiver) external {
@@ -124,8 +125,8 @@ contract SharesTimeLock is Ownable() {
     require(amount >= minLockAmount, "Deposit: amount too small");
     depositToken.safeTransferFrom(msg.sender, address(this), amount);
     uint256 multiplier = getRewardsMultiplier(duration);
-    uint256 rewardShares = amount.mul(multiplier) / 1e18;
-    rewardsToken.mint(receiver, rewardShares);
+    uint256 dividendShares = amount.mul(multiplier) / 1e18;
+    dividendsToken.mint(receiver, dividendShares);
     locks.push(Lock({
       amount: amount,
       lockedAt: uint32(block.timestamp),
@@ -141,8 +142,8 @@ contract SharesTimeLock is Ownable() {
     require(block.timestamp > lock.lockedAt + lock.lockDuration, "lock not expired");
     delete locks[lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
-    uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
-    rewardsToken.burn(msg.sender, rewardShares);
+    uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
+    dividendsToken.burn(msg.sender, dividendShares);
       
     depositToken.safeTransfer(msg.sender, lock.amount);
     emit Withdrawn(lock.amount, msg.sender);
@@ -154,12 +155,12 @@ contract SharesTimeLock is Ownable() {
 
     delete locks[lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
-    uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
-    require(rewardsToken.balanceOf(lock.owner) >= rewardShares, "boostToMax: Wrong shares number");
+    uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
+    require(dividendsToken.balanceOf(lock.owner) >= dividendShares, "boostToMax: Wrong shares number");
 
     uint256 newMultiplier = getRewardsMultiplier(maxLockDuration);
-    uint256 newRewardShares = lock.amount.mul(newMultiplier) / 1e18;
-    rewardsToken.mint(msg.sender, newRewardShares.sub(rewardShares));
+    uint256 newDividendShares = lock.amount.mul(newMultiplier) / 1e18;
+    dividendsToken.mint(msg.sender, newDividendShares.sub(dividendShares));
     locks.push(Lock({
       amount: lock.amount,
       lockedAt: uint32(block.timestamp),
@@ -181,8 +182,8 @@ contract SharesTimeLock is Ownable() {
 
       delete locks[lockIds[i]];
       uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
-      uint256 rewardShared = lock.amount.mul(multiplier) / 1e18;
-      rewardsToken.burn(lock.owner, rewardShared);
+      uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
+      dividendsToken.burn(lock.owner, dividendShares);
 
       depositToken.safeTransfer(lock.owner, lock.amount);
 
