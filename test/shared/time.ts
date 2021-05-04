@@ -44,6 +44,9 @@ export const duration = {
   weeks: function (val: number) {
     return val * this.days(7)
   },
+  months: function (val: number) {
+    return val * 2628000; // avg seconds in a month
+  },
   years: function (val: number) {
     return val * this.days(365)
   },

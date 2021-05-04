@@ -21,6 +21,55 @@ contract SharesTimeLock is Ownable() {
 
   uint256 public minLockAmount;
 
+  uint256 private constant avgSecondsMonth = 2628000;
+
+  /*
+    Mapping of coefficient for the staking curve
+    y=x/k*log(x)
+    where `x` is the staking time
+    and `k` is a constant 56.0268900276223
+    the period of staking here is calculated in months.
+   */
+  uint256[37] private maxRatioArray = [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    83333333333300000, // 6 
+    105586554548800000, // 7 
+    128950935744800000, // 8
+    153286798191400000, // 9
+    178485723463700000, // 10
+    204461099502300000, // 11
+    231142134539100000, // 12
+    258469880674300000, // 13
+    286394488282000000, // 14
+    314873248847800000, // 15
+    343869161986300000, // 16
+    373349862059400000, // 17
+    403286798191400000, // 18
+    433654597035900000, // 19
+    464430560048100000, // 20
+    495594261536300000, // 21
+    527127223437300000, // 22
+    559012649336100000, // 23
+    591235204823000000, // 24
+    623780834516600000, // 25
+    656636608405400000, // 26
+    689790591861100000, // 27
+    723231734933100000, // 28
+    756949777475800000, // 29
+    790935167376600000, // 30
+    825178989697100000, // 31
+    859672904965600000, // 32
+    894409095191000000, // 33
+    929380216424000000, // 34
+    964579356905500000, // 35
+    1000000000000000000 // 36
+  ];
+
   event MinLockAmountChanged(uint256 newLockAmount);
   event Deposited(uint256 amount, uint32 lockDuration, address owner);
   event Withdrawn(uint256 amount, address owner);
@@ -43,7 +92,8 @@ contract SharesTimeLock is Ownable() {
    */
   function getDividendsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getDividendsMultiplier: Duration not correct");
-    uint256 multiplier = uint256(duration).mul(1e18) / maxLockDuration;
+    uint256 month = uint256(duration) / avgSecondsMonth;
+    uint256 multiplier = maxRatioArray[month];
     return multiplier;
   }
 
@@ -60,9 +110,16 @@ contract SharesTimeLock is Ownable() {
     minLockDuration = minLockDuration_;
     maxLockDuration = maxLockDuration_;
     minLockAmount = minLockAmount_;
+    
   }
 
-  function deposit(uint256 amount, uint32 duration, address receiver) external {
+  function depositByMonths(uint256 amount, uint256 _months, address receiver) external {
+    //require(_months > 5 && _months <= 36, 'Wrong duration');
+    uint32 duration = uint32( _months.mul(avgSecondsMonth) );
+    deposit(amount, duration, receiver);
+  }
+
+  function deposit(uint256 amount, uint32 duration, address receiver) internal {
     require(amount >= minLockAmount, "Deposit: amount too small");
     depositToken.safeTransferFrom(msg.sender, address(this), amount);
     uint256 multiplier = getDividendsMultiplier(duration);
@@ -97,7 +154,7 @@ contract SharesTimeLock is Ownable() {
     delete locks[lockId];
     uint256 multiplier = getDividendsMultiplier(lock.lockDuration);
     uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
-    require(dividendsToken.balanceOf(lock.owner) >= dividendShares, 'boostToMax: Wrong shares');
+    require(dividendsToken.balanceOf(lock.owner) >= dividendShares, "boostToMax: Wrong shares number");
 
     uint256 newMultiplier = getDividendsMultiplier(maxLockDuration);
     uint256 newDividendShares = lock.amount.mul(newMultiplier) / 1e18;
