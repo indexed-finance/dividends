@@ -149,7 +149,7 @@ describe('ERC20NonTransferableRewardBearing', () => {
 
     const {merkleTree, leafs} = createParticipationTree(entries);
 
-    describe.only("With participation root set", async() => {
+    describe("With participation root set", async() => {
       let root:string;
       beforeEach(async() => {
         root = merkleTree.getRoot();
