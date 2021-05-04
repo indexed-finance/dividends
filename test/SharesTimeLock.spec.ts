@@ -5,7 +5,7 @@ import { ERC20NonTransferableRewardsOwned } from '../typechain/ERC20NonTransfera
 import { SharesTimeLock } from '../typechain/SharesTimeLock';
 import { SharesTimeLock__factory } from '../typechain/factories/SharesTimeLock__factory';
 import { toBigNumber } from './shared/utils';
-import { advanceBlock, duration, latest, setNextTimestamp } from './shared/time';
+import { duration, latest, setNextTimestamp } from './shared/time';
 import { constants, BigNumber } from 'ethers';
 
 const receiver = '0x0000000000000000000000000000000000000001';
@@ -58,7 +58,7 @@ const curveRatio = [
 const MINTIME = duration.months(6);
 const MAXTIME = duration.months(36);
 
-describe('DelegationModule', () => {
+describe('DelegationModule', () => {  
   let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
   let timeLock: SharesTimeLock;
   let depositToken: TestERC20
@@ -77,8 +77,12 @@ describe('DelegationModule', () => {
       MAXTIME,
       toBigNumber(1)
     )) as SharesTimeLock
-    await depositToken.mint(wallet.address, toBigNumber(10))
-    await depositToken.approve(timeLock.address, toBigNumber(10))
+    await depositToken.mint(wallet.address, toBigNumber(10));
+    await depositToken.mint(wallet1.address, toBigNumber(10));
+    await depositToken.mint(wallet2.address, toBigNumber(10));
+    await depositToken.approve(timeLock.address, toBigNumber(10));
+    await depositToken.connect(wallet1).approve(timeLock.address, toBigNumber(10));
+    await depositToken.connect(wallet2).approve(timeLock.address, toBigNumber(10));
     await rewardsToken.transferOwnership(timeLock.address)
   })
 
@@ -260,11 +264,94 @@ describe('DelegationModule', () => {
   })
 
   describe('eject()', () => {
-    //TODO
+    it('Should eject expired locks', async () => {
+      await timeLock.depositByMonths(toBigNumber(10), 6, wallet.address)
+      await timeLock.connect(wallet1).depositByMonths(toBigNumber(10), 6, wallet1.address)
+
+      expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(20));
+      expect(await timeLock.getLocksLength()).to.eq(2);
+
+      const timestamp = await latest();
+      await setNextTimestamp(timestamp + duration.months(6) + duration.hours(1));
+      
+      expect(await timeLock.eject([0, 1]))
+        .to.emit(timeLock, "Ejected")
+        .withArgs(toBigNumber(10), wallet.address)
+        .to.emit(timeLock, "Ejected")
+        .withArgs(toBigNumber(10), wallet1.address)
+      
+      expect(await timeLock.getLocksLength()).to.eq(2);
+
+      expect(await depositToken.balanceOf(timeLock.address)).to.eq(0);
+      expect(await depositToken.balanceOf(wallet.address)).to.eq(toBigNumber(10));
+      expect(await depositToken.balanceOf(wallet1.address)).to.eq(toBigNumber(10));
+
+      expect(await timeLock.locks(0)).to.deep.eq([
+        constants.Zero, 0, 0, constants.AddressZero
+      ])
+
+      expect(await timeLock.locks(1)).to.deep.eq([
+        constants.Zero, 0, 0, constants.AddressZero
+      ])
+
+    })
+
+    it('Should not eject locks if not expired', async () => {
+      await timeLock.depositByMonths(toBigNumber(10), 9, wallet.address)
+      let timestampOne = await latest();
+
+      await timeLock.connect(wallet1).depositByMonths(toBigNumber(10), 9, wallet1.address)
+      let timestampTwo = await latest();
+
+      await timeLock.connect(wallet2).depositByMonths(toBigNumber(10), 6, wallet2.address)
+      let timestampThree = await latest();
+
+      await setNextTimestamp(timestampThree + duration.months(6) + duration.hours(1));
+
+      expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(30));
+      expect(await timeLock.getLocksLength()).to.eq(3);
+      
+      expect(await timeLock.eject([0, 1, 2]))
+
+      expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(20));
+      expect(await depositToken.balanceOf(wallet.address)).to.eq(0);
+      expect(await depositToken.balanceOf(wallet1.address)).to.eq(0);
+      expect(await depositToken.balanceOf(wallet2.address)).to.eq(toBigNumber(10));
+
+      expect(await timeLock.getLocksLength()).to.eq(3);
+
+      expect(await timeLock.locks(0)).to.deep.eq([
+        toBigNumber(10), 
+        timestampOne, 
+        duration.months(9), 
+        wallet.address
+      ])
+
+      expect(await timeLock.locks(1)).to.deep.eq([
+        toBigNumber(10), 
+        timestampTwo, 
+        duration.months(9), 
+        wallet1.address
+      ])
+
+      expect(await timeLock.locks(2)).to.deep.eq([
+        constants.Zero, 0, 0, constants.AddressZero
+      ])
+    })
   })
 
   describe('setMinLockAmount()', () => {
-    //TODO
+    it('Should set minLockAmount correctly', async () => {
+      expect(await timeLock.setMinLockAmount(toBigNumber(100)))
+        .to.emit(timeLock, 'MinLockAmountChanged').withArgs(toBigNumber(100))
+
+      expect(await timeLock.minLockAmount()).to.eq(toBigNumber(100));
+    })
+
+    it('Should be reverted if not called by contract owner', async () => {
+      await expect(timeLock.connect(wallet1).setMinLockAmount(toBigNumber(100)))
+        .to.be.revertedWith('Ownable: caller is not the owner');
+    })
   })
 
   describe('boostToMax()', () => {
