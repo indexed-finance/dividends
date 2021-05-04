@@ -1,7 +1,7 @@
 import { ethers, waffle } from 'hardhat';
 import { expect } from "chai";
 import { TestERC20 } from '../typechain/TestERC20';
-import { ERC20NonTransferableDividendsOwned } from '../typechain/ERC20NonTransferableDividendsOwned';
+import { ERC20NonTransferableRewardsOwned } from '../typechain/ERC20NonTransferableRewardsOwned';
 import { SharesTimeLock } from '../typechain/SharesTimeLock';
 import { SharesTimeLock__factory } from '../typechain/factories/SharesTimeLock__factory';
 import { toBigNumber } from './shared/utils';
@@ -62,24 +62,24 @@ describe('DelegationModule', () => {
   let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
   let timeLock: SharesTimeLock;
   let depositToken: TestERC20
-  let dividendsToken: ERC20NonTransferableDividendsOwned
+  let rewardsToken: ERC20NonTransferableRewardsOwned
   
   beforeEach('Deploy fixtures', async () => {
     const erc20Factory = await ethers.getContractFactory('TestERC20')
     depositToken = (await erc20Factory.deploy('Test', 'Test')) as TestERC20
-    const dividendsFactory = await ethers.getContractFactory('ERC20NonTransferableDividendsOwned')
-    dividendsToken = (await dividendsFactory.deploy(depositToken.address, 'dTest', 'dTest')) as ERC20NonTransferableDividendsOwned
+    const rewardsFactory = await ethers.getContractFactory('ERC20NonTransferableRewardsOwned')
+    rewardsToken = (await rewardsFactory.deploy(depositToken.address, 'dTest', 'dTest')) as ERC20NonTransferableRewardsOwned
     const factory = await ethers.getContractFactory('SharesTimeLock') as SharesTimeLock__factory;
     timeLock = (await factory.deploy(
       depositToken.address,
-      dividendsToken.address,
+      rewardsToken.address,
       MINTIME,
       MAXTIME,
       toBigNumber(1)
     )) as SharesTimeLock
     await depositToken.mint(wallet.address, toBigNumber(10))
     await depositToken.approve(timeLock.address, toBigNumber(10))
-    await dividendsToken.transferOwnership(timeLock.address)
+    await rewardsToken.transferOwnership(timeLock.address)
   })
 
   describe('Constructor', () => {
@@ -87,7 +87,7 @@ describe('DelegationModule', () => {
       const factory = await ethers.getContractFactory('SharesTimeLock') as SharesTimeLock__factory
       await expect(factory.deploy(
         depositToken.address,
-        dividendsToken.address,
+        rewardsToken.address,
         duration.days(30),
         duration.days(30),
         toBigNumber(1)
@@ -99,8 +99,8 @@ describe('DelegationModule', () => {
         expect(await timeLock.depositToken()).to.eq(depositToken.address)
       })
   
-      it('dividendsToken', async () => {
-        expect(await timeLock.dividendsToken()).to.eq(dividendsToken.address)
+      it('rewardsToken', async () => {
+        expect(await timeLock.rewardsToken()).to.eq(rewardsToken.address)
       })
   
       it('minLockDuration', async () => {
@@ -114,23 +114,23 @@ describe('DelegationModule', () => {
     })
   })
 
-  describe('getDividendsMultiplier()', () => {
+  describe('getRewardsMultiplier()', () => {
 
     it('Should revert if duration less than minimum', async () => {
-      await expect(timeLock.getDividendsMultiplier(duration.months(3))).to.be.revertedWith('getDividendsMultiplier: Duration not correct')
+      await expect(timeLock.getRewardsMultiplier(duration.months(3))).to.be.revertedWith('getRewardsMultiplier: Duration not correct')
     })
 
     it('Should revert if duration higher than maximum', async () => {
-      await expect(timeLock.getDividendsMultiplier(duration.months(37))).to.be.revertedWith('getDividendsMultiplier: Duration not correct')
+      await expect(timeLock.getRewardsMultiplier(duration.months(37))).to.be.revertedWith('getRewardsMultiplier: Duration not correct')
     })
 
     it('Should return 0.0833333333333 for min duration in this case', async () => {
-      expect(await timeLock.getDividendsMultiplier(duration.months(6))).to.eq(curveRatio[6].toString())
+      expect(await timeLock.getRewardsMultiplier(duration.months(6))).to.eq(curveRatio[6].toString())
     })
 
     for (let index = 6; index < curveRatio.length; index++) {
       it('Should return correct ratio for month ' + index, async () => {
-        expect(await timeLock.getDividendsMultiplier(duration.months(index))).to.eq(curveRatio[index].toString())
+        expect(await timeLock.getRewardsMultiplier(duration.months(index))).to.eq(curveRatio[index].toString())
       })
     }
     
@@ -146,13 +146,13 @@ describe('DelegationModule', () => {
     it('Should revert if duration < minLockDuration', async () => {
       await expect(
         timeLock.depositByMonths(toBigNumber(10), 5, receiver)
-      ).to.be.revertedWith('getDividendsMultiplier: Duration not correct')
+      ).to.be.revertedWith('getRewardsMultiplier: Duration not correct')
     })
 
     it('Should revert if duration > maxLockDuration', async () => {
       await expect(
         timeLock.depositByMonths(toBigNumber(10), 37, receiver)
-      ).to.be.revertedWith('getDividendsMultiplier: Duration not correct')
+      ).to.be.revertedWith('getRewardsMultiplier: Duration not correct')
     })
 
     it('Should deposit amount to sharesTimeLock contract', async () => {
@@ -162,10 +162,10 @@ describe('DelegationModule', () => {
       expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(10))
     })
 
-    it('Should deposit dividend token to the receiver address', async () => {
+    it('Should deposit reward token to the receiver address', async () => {
       await timeLock.depositByMonths(toBigNumber(5), 6, receiver)
       expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(5))
-      expect(await dividendsToken.balanceOf(receiver)).to.gt(toBigNumber(0));
+      expect(await rewardsToken.balanceOf(receiver)).to.gt(toBigNumber(0));
     })
 
     it('Should push to locks', async () => {
@@ -185,12 +185,12 @@ describe('DelegationModule', () => {
       const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[6].toString()));
       
       await expect(timeLock.depositByMonths(toBigNumber(5), 6, wallet.address))
-        .to.emit(dividendsToken, 'Transfer')
+        .to.emit(rewardsToken, 'Transfer')
         .withArgs(constants.AddressZero, wallet.address, expected.toString())
 
       // To receiver now
       await expect(timeLock.depositByMonths(toBigNumber(5), 6, receiver))
-        .to.emit(dividendsToken, 'Transfer')
+        .to.emit(rewardsToken, 'Transfer')
         .withArgs(constants.AddressZero, receiver, expected.toString())
     })
   })
@@ -201,9 +201,9 @@ describe('DelegationModule', () => {
     })
 
     // NOTE: shares are no longer transferable so this check is redundant
-    // it('Should revert if caller does not have all dividend tokens minted', async () => {
+    // it('Should revert if caller does not have all reward tokens minted', async () => {
     //   await timeLock.deposit(toBigNumber(5), duration.days(30))
-    //   await dividendsToken.transfer(wallet1.address, 1)
+    //   await rewardsToken.transfer(wallet1.address, 1)
     //   await expect(
     //     timeLock.withdraw(0)
     //   ).to.be.revertedWith('ERC20: burn amount exceeds balance')
@@ -217,14 +217,14 @@ describe('DelegationModule', () => {
     })
 
     describe('When timelock has passed', () => {
-      it('Should burn dividends token from caller', async () => {
+      it('Should burn rewards token from caller', async () => {
         const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[6].toString()));
         const timestamp = await latest()
         await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
         //Note: since we are using an AVG for second in months, it could be of of a few seconds
         await setNextTimestamp(timestamp + duration.months(6) + duration.seconds(5) )
         await expect(timeLock.withdraw(0))
-          .to.emit(dividendsToken, 'Transfer')
+          .to.emit(rewardsToken, 'Transfer')
           .withArgs(wallet.address, constants.AddressZero, expected.toString() )
       })
   
@@ -292,28 +292,28 @@ describe('DelegationModule', () => {
       ])
     })
 
-    it('Should mint the remaining dividend tokens', async () => {
+    it('Should mint the remaining reward tokens', async () => {
       await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
       let timestamp = await latest()
       const later = timestamp + duration.months(1);
       await setNextTimestamp(later);
 
       await timeLock.boostToMax(0);
-      //Check new dividend balance is correct
+      //Check new reward balance is correct
       const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[36].toString()));
-      expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
+      expect(await rewardsToken.balanceOf(wallet.address)).to.eq(expected);
     })
 
-    it('Should not mint dividend tokens if boost was already at max', async () => {
+    it('Should not mint reward tokens if boost was already at max', async () => {
       const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[36].toString()));
       await timeLock.depositByMonths(toBigNumber(5), 36, wallet.address)
-      expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
+      expect(await rewardsToken.balanceOf(wallet.address)).to.eq(expected);
       let timestamp = await latest()
       const later = timestamp + duration.months(1);
       await setNextTimestamp(later);
       await timeLock.boostToMax(0);
-      //Check the dividend balance did not change
-      expect(await dividendsToken.balanceOf(wallet.address)).to.eq(expected);
+      //Check the reward balance did not change
+      expect(await rewardsToken.balanceOf(wallet.address)).to.eq(expected);
     })
 
     it('Should delete the previous lock', async () => {

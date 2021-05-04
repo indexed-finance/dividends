@@ -4,12 +4,12 @@ pragma abicoder v2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/cryptography/MerkleProof.sol";
-import "./base/ERC20NonTransferableDividends.sol";
+import "./base/ERC20NonTransferableRewards.sol";
 import "./libraries/TransferHelper.sol";
 import "hardhat/console.sol";
 
 
-contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ownable {
+contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownable {
   using TransferHelper for address;
 
   address public immutable token;
@@ -34,7 +34,7 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
     address token_,
     string memory name_,
     string memory symbol_
-  ) ERC20NonTransferableDividends(name_, symbol_) Ownable() {
+  ) ERC20NonTransferableRewards(name_, symbol_) Ownable() {
     token = token_;
   }
 
@@ -87,12 +87,12 @@ contract ERC20NonTransferableDividendsOwned is ERC20NonTransferableDividends, Ow
       totalRedistributed += _prepareCollect(accounts[i]);
     }
 
-    _distributeDividends(totalRedistributed);
+    _distributeRewards(totalRedistributed);
   }
 
   function distribute(uint256 amount) external {
     token.safeTransferFrom(msg.sender, address(this), amount);
-    _distributeDividends(amount);
+    _distributeRewards(amount);
   }
 
 
