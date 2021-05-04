@@ -11,14 +11,14 @@ contract SharesTimeLock is Ownable() {
   using LowGasSafeMath for uint256;
   using TransferHelper for address;
 
-  address public immutable depositToken;
+  address public depositToken;
 
-  ERC20NonTransferableRewardsOwned public immutable dividendsToken;
+  ERC20NonTransferableRewardsOwned public rewardsToken;
 
   // min amount in 
-  uint32 public immutable minLockDuration;
+  uint32 public minLockDuration;
 
-  uint32 public immutable maxLockDuration;
+  uint32 public maxLockDuration;
 
   uint256 public minLockAmount;
 
@@ -91,7 +91,7 @@ contract SharesTimeLock is Ownable() {
   }
 
   /**
-   * @dev Returns the dividends multiplier for `duration` expressed as a fraction of 1e18.
+   * @dev Returns the rewards multiplier for `duration` expressed as a fraction of 1e18.
    */
   function getRewardsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getRewardsMultiplier: Duration not correct");
@@ -102,12 +102,12 @@ contract SharesTimeLock is Ownable() {
 
   function initialize(
     address depositToken_,
-    ERC20NonTransferableRewardsOwned dividendsToken_,
+    ERC20NonTransferableRewardsOwned rewardsToken_,
     uint32 minLockDuration_,
     uint32 maxLockDuration_,
     uint256 minLockAmount_
   ) public {
-    dividendsToken = dividendsToken_;
+    rewardsToken = rewardsToken_;
     depositToken = depositToken_;
     require(minLockDuration_ < maxLockDuration_, "min>=max");
     minLockDuration = minLockDuration_;
@@ -125,8 +125,8 @@ contract SharesTimeLock is Ownable() {
     require(amount >= minLockAmount, "Deposit: amount too small");
     depositToken.safeTransferFrom(msg.sender, address(this), amount);
     uint256 multiplier = getRewardsMultiplier(duration);
-    uint256 dividendShares = amount.mul(multiplier) / 1e18;
-    dividendsToken.mint(receiver, dividendShares);
+    uint256 rewardShares = amount.mul(multiplier) / 1e18;
+    rewardsToken.mint(receiver, rewardShares);
     locks.push(Lock({
       amount: amount,
       lockedAt: uint32(block.timestamp),
@@ -142,8 +142,8 @@ contract SharesTimeLock is Ownable() {
     require(block.timestamp > lock.lockedAt + lock.lockDuration, "lock not expired");
     delete locks[lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
-    uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
-    dividendsToken.burn(msg.sender, dividendShares);
+    uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
+    rewardsToken.burn(msg.sender, rewardShares);
       
     depositToken.safeTransfer(msg.sender, lock.amount);
     emit Withdrawn(lock.amount, msg.sender);
@@ -155,12 +155,12 @@ contract SharesTimeLock is Ownable() {
 
     delete locks[lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
-    uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
-    require(dividendsToken.balanceOf(lock.owner) >= dividendShares, "boostToMax: Wrong shares number");
+    uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
+    require(rewardsToken.balanceOf(lock.owner) >= rewardShares, "boostToMax: Wrong shares number");
 
     uint256 newMultiplier = getRewardsMultiplier(maxLockDuration);
-    uint256 newDividendShares = lock.amount.mul(newMultiplier) / 1e18;
-    dividendsToken.mint(msg.sender, newDividendShares.sub(dividendShares));
+    uint256 newRewardShares = lock.amount.mul(newMultiplier) / 1e18;
+    rewardsToken.mint(msg.sender, newRewardShares.sub(rewardShares));
     locks.push(Lock({
       amount: lock.amount,
       lockedAt: uint32(block.timestamp),
@@ -182,8 +182,8 @@ contract SharesTimeLock is Ownable() {
 
       delete locks[lockIds[i]];
       uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
-      uint256 dividendShares = lock.amount.mul(multiplier) / 1e18;
-      dividendsToken.burn(lock.owner, dividendShares);
+      uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
+      rewardsToken.burn(lock.owner, rewardShares);
 
       depositToken.safeTransfer(lock.owner, lock.amount);
 
