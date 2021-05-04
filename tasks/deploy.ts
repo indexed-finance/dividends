@@ -1,6 +1,6 @@
 import { task } from "hardhat/config";
-import { ERC20NonTransferableDividendsOwned } from "../typechain/ERC20NonTransferableDividendsOwned";
-import { ERC20NonTransferableDividendsOwned__factory } from "../typechain/factories/ERC20NonTransferableDividendsOwned__factory"
+import { ERC20NonTransferableRewardsOwned } from "../typechain/ERC20NonTransferableRewardsOwned";
+import { ERC20NonTransferableRewardsOwned__factory } from "../typechain/factories/ERC20NonTransferableRewardsOwned__factory"
 import { SharesTimeLock__factory } from "../typechain/factories/SharesTimeLock__factory";
 
 task("deploy-staking")
@@ -14,7 +14,7 @@ task("deploy-staking")
     .setAction(async(taskArgs, {ethers, network}) => {
         const signer = (await ethers.getSigners())[0];
 
-        const dToken = await (new ERC20NonTransferableDividendsOwned__factory(signer)).deploy(
+        const dToken = await (new ERC20NonTransferableRewardsOwned__factory(signer)).deploy(
             taskArgs.rewardToken,
             taskArgs.name,
             taskArgs.symbol

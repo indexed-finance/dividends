@@ -2,11 +2,11 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import "../ERC20NonTransferableDividendsOwned.sol";
+import "../ERC20NonTransferableRewardsOwned.sol";
 
 
-contract TestERC20NonTransferableDividends is ERC20NonTransferableDividendsOwned {
-  constructor() ERC20NonTransferableDividendsOwned(address(0), "ERC20Dividends", "DIV") {}
+contract TestERC20NonTransferableRewards is ERC20NonTransferableRewardsOwned {
+  constructor() ERC20NonTransferableRewardsOwned(address(0), "ERC20Rewards", "DIV") {}
 
   function mint(address account, uint256 amount) external override {
     _mint(account, amount);
@@ -16,16 +16,16 @@ contract TestERC20NonTransferableDividends is ERC20NonTransferableDividendsOwned
     _burn(account, amount);
   }
 
-  function distributeDividends(uint256 amount) external {
-    _distributeDividends(amount);
+  function distributeRewards(uint256 amount) external {
+    _distributeRewards(amount);
   }
 
   function getPointsCorrection(address account) external view returns (int256) {
     return pointsCorrection[account];
   }
 
-  function getWithdrawnDividends(address account) external view returns (uint256) {
-    return withdrawnDividendsOf(account);
+  function getWithdrawnRewards(address account) external view returns (uint256) {
+    return withdrawnRewardsOf(account);
   }
 
   function prepareCollect(address account) external returns (uint256) {

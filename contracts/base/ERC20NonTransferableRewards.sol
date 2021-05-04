@@ -2,21 +2,21 @@
 pragma solidity =0.7.6;
 
 import "./ERC20NonTransferable.sol";
-import "./AbstractDividends.sol";
+import "./AbstractRewards.sol";
 
 /**
-* @dev Same as the ERC20Dividends.sol but using the non transferable ERC20 base class    
+* @dev Same as the ERC20Rewards.sol but using the non transferable ERC20 base class    
 */
-contract ERC20NonTransferableDividends is ERC20NonTransferable, AbstractDividends {
+contract ERC20NonTransferableRewards is ERC20NonTransferable, AbstractRewards {
   /**
-   * @dev Wrapper for balanceOf to give AbstractDividends a function reference.
+   * @dev Wrapper for balanceOf to give AbstractRewards a function reference.
    */
   function _balanceOf(address account) internal view returns (uint256) {
     return balanceOf[account];
   }
 
   /**
-   * @dev Wrapper for totalSupply to give AbstractDividends a function reference.
+   * @dev Wrapper for totalSupply to give AbstractRewards a function reference.
    */
   function _totalSupply() internal view returns (uint256) {
     return totalSupply;
@@ -24,7 +24,7 @@ contract ERC20NonTransferableDividends is ERC20NonTransferable, AbstractDividend
 
   constructor(string memory name, string memory symbol)
     ERC20NonTransferable(name, symbol, 18)
-    AbstractDividends(_balanceOf, _totalSupply)
+    AbstractRewards(_balanceOf, _totalSupply)
   {}
 
 	/**
