@@ -172,10 +172,11 @@ contract SharesTimeLock is Ownable() {
 
   // Eject expired locks
   function eject(uint256[] memory lockIds) external {
+    
     for(uint256 i = 0; i < lockIds.length; i ++) {
       Lock memory lock = locks[lockIds[i]];
       //skip if lock not expired or locked amount is zero
-      if(lock.lockedAt + lock.lockDuration < block.timestamp || lock.amount == 0) {
+      if(lock.lockedAt + lock.lockDuration > block.timestamp || lock.amount == 0) {
         continue;
       }
 
