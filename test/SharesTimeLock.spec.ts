@@ -58,7 +58,7 @@ const curveRatio = [
 const MINTIME = duration.months(6);
 const MAXTIME = duration.months(36);
 
-describe('DelegationModule', () => {
+describe('SharesTimeLock', () => {
   let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
   let timeLock: SharesTimeLock;
   let depositToken: TestERC20
@@ -68,24 +68,32 @@ describe('DelegationModule', () => {
     const erc20Factory = await ethers.getContractFactory('TestERC20')
     depositToken = (await erc20Factory.deploy('Test', 'Test')) as TestERC20
     const rewardsFactory = await ethers.getContractFactory('ERC20NonTransferableRewardsOwned')
-    rewardsToken = (await rewardsFactory.deploy(depositToken.address, 'dTest', 'dTest')) as ERC20NonTransferableRewardsOwned
+    rewardsToken = (await rewardsFactory.deploy() as ERC20NonTransferableRewardsOwned);
+    rewardsToken['initialize(address)'](depositToken.address);
+    rewardsToken['initialize(string,string)']("dTest", "dTest");
     const factory = await ethers.getContractFactory('SharesTimeLock') as SharesTimeLock__factory;
-    timeLock = (await factory.deploy(
+    timeLock = (await factory.deploy()) as SharesTimeLock
+    await timeLock.initialize(
       depositToken.address,
       rewardsToken.address,
       MINTIME,
       MAXTIME,
       toBigNumber(1)
-    )) as SharesTimeLock
+    );
+    
     await depositToken.mint(wallet.address, toBigNumber(10))
     await depositToken.approve(timeLock.address, toBigNumber(10))
     await rewardsToken.transferOwnership(timeLock.address)
   })
 
-  describe('Constructor', () => {
-    it('Should revert if maxLockDuration <= minLockDuration', async () => {
+  describe('Initializer', () => {
+    let tl: SharesTimeLock;
+    before(async() => {
       const factory = await ethers.getContractFactory('SharesTimeLock') as SharesTimeLock__factory
-      await expect(factory.deploy(
+      tl = await factory.deploy();
+    });
+    it('Should revert if maxLockDuration <= minLockDuration', async () => {
+      await expect(tl.initialize(
         depositToken.address,
         rewardsToken.address,
         duration.days(30),

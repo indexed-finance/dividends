@@ -14,20 +14,15 @@ task("deploy-staking")
     .setAction(async(taskArgs, {ethers, network}) => {
         const signer = (await ethers.getSigners())[0];
 
-        const dToken = await (new ERC20NonTransferableRewardsOwned__factory(signer)).deploy(
-            taskArgs.rewardToken,
-            taskArgs.name,
-            taskArgs.symbol
-        );   
+        const dToken = await (new ERC20NonTransferableRewardsOwned__factory(signer)).deploy();
+        await dToken["initialize(address)"](taskArgs.rewardToken);
+        await dToken["initialize(string,string)"](taskArgs.name, taskArgs.symbol);
+
         console.log(`dToken deployed at: ${dToken.address}`);
 
-        const sharesTimeLock = await (new SharesTimeLock__factory(signer)).deploy(
-            taskArgs.depositToken,
-            dToken.address,
-            taskArgs.minLockDuration,
-            taskArgs.maxLockDuration,
-            taskArgs.minLockAmount
-        );
+        const sharesTimeLock = await (new SharesTimeLock__factory(signer)).deploy();
+        await sharesTimeLock.initialize(taskArgs.depositToken, dToken.address, taskArgs.minLockDuration, taskArgs.maxLockDuration, taskArgs.minLockAmount);
+        
         console.log(`sharesTimeLock deployed at: ${sharesTimeLock.address}`);
 
         const tx = await dToken.transferOwnership(sharesTimeLock.address);

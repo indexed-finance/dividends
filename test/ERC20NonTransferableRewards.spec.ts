@@ -2,7 +2,7 @@ import { ethers, waffle } from 'hardhat';
 import { expect } from "chai";
 import {  TestERC20NonTransferableRewards } from '../typechain/TestERC20NonTransferableRewards';
 import { POINTS_MULTIPLIER, toBigNumber } from './shared/utils';
-import { BigNumber } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 import { createParticipationTree, ParticipationEntry, ParticipationEntryWithLeaf } from '../utils';
 import { MerkleTree } from '../utils/MerkleTree';
 import { parseEther } from 'ethers/lib/utils';
@@ -14,6 +14,9 @@ describe('ERC20NonTransferableRewardBearing', () => {
   beforeEach('Deploy TestERC20Rewards', async () => {
     const factory = await ethers.getContractFactory('TestERC20NonTransferableRewards')
     erc20 = (await factory.deploy()) as TestERC20NonTransferableRewards;
+    // TODO consider consilidating into single initalizer
+    await erc20['initialize(address)'](constants.AddressZero);
+    await erc20['initialize(string,string)']("vDOUGH", "vDOUGH");
   })
 
   const getPointsPerShare = (amount: BigNumber, totalSupply: BigNumber) => amount.mul(POINTS_MULTIPLIER).div(totalSupply);
@@ -153,7 +156,7 @@ describe('ERC20NonTransferableRewardBearing', () => {
       let root:string;
       beforeEach(async() => {
         root = merkleTree.getRoot();
-        erc20.setParticipationMerkleRoot(root);
+        await erc20.setParticipationMerkleRoot(root);
       });
 
       it("Root should be set", async() => {
