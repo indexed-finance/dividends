@@ -149,6 +149,33 @@ describe('ERC20NonTransferableRewardBearing', () => {
 
     const {merkleTree, leafs} = createParticipationTree(entries);
 
+    describe("Without participation root set", async() => {
+      it("Calling collect() should work", async() => {
+        await erc20.mint(wallet1.address, toBigNumber(5));
+        await erc20.mint(wallet.address, toBigNumber(5));
+        await erc20.distributeRewards(toBigNumber(10));
+        
+        expect(await erc20.withdrawableRewardsOf(wallet.address)).to.eq(toBigNumber(5));
+        
+        await erc20.collect()
+
+        expect(await erc20.withdrawnRewardsOf(wallet.address)).to.eq(toBigNumber(5));
+      });
+
+      it("Calling collectFor() should work", async() => {
+        await erc20.mint(wallet1.address, toBigNumber(5));
+        await erc20.mint(wallet.address, toBigNumber(5));
+        await erc20.distributeRewards(toBigNumber(10));
+        
+        expect(await erc20.withdrawableRewardsOf(wallet1.address)).to.eq(toBigNumber(5));
+        
+        await erc20.collectFor(wallet1.address)
+
+        expect(await erc20.withdrawnRewardsOf(wallet1.address)).to.eq(toBigNumber(5));
+      });
+
+    });
+
     describe("With participation root set", async() => {
       let root:string;
       beforeEach(async() => {
@@ -197,6 +224,97 @@ describe('ERC20NonTransferableRewardBearing', () => {
       });
     });
   });
+
+  describe('redistribute', async () => {
+    const ParticipationTypes = {
+      INACTIVE: 0,
+      YES: 1
+    }
+
+    const entriesOneInactive: ParticipationEntry[] = [
+      {
+        address: wallet1.address,
+        participation: ParticipationTypes.YES
+      },
+      {
+        address: wallet2.address,
+        participation: ParticipationTypes.INACTIVE
+      }
+    ];
+
+    const entriesAllInactive: ParticipationEntry[] = [
+      {
+        address: wallet1.address,
+        participation: ParticipationTypes.INACTIVE
+      },
+      {
+        address: wallet2.address,
+        participation: ParticipationTypes.INACTIVE
+      }
+    ];
+
+    const merkleTreeOneInactive = createParticipationTree(entriesOneInactive);
+    const rootOneInactive = merkleTreeOneInactive.merkleTree.getRoot();
+
+    const merkleTreeAllInactive = createParticipationTree(entriesAllInactive);
+    const rootAllInactive = merkleTreeAllInactive.merkleTree.getRoot();
+
+    it('Should revert if length(accounts) != length(proofs)', async () => {
+      const {merkleTree, leafs} = merkleTreeOneInactive
+
+      await erc20.setParticipationMerkleRoot(rootOneInactive);
+
+      let proofs = [merkleTree.getProof(leafs[0].leaf), merkleTree.getProof(leafs[1].leaf)]
+
+      await expect(erc20.redistribute([wallet1.address], proofs))
+        .to.be.revertedWith("redistribute: Array length mismatch");
+    })
+
+    it('Should revert if participationMerkleRoot is not set', async () => {
+      await expect(erc20.redistribute([], []))
+        .to.be.revertedWith("participationNeeded: merkle root not set")
+    })
+
+    it('Should skip invalid proofs', async () => {
+      const {merkleTree, leafs} = merkleTreeOneInactive;
+      await erc20.setParticipationMerkleRoot(rootOneInactive);
+
+      await erc20.mint(wallet1.address, toBigNumber(5));
+      await erc20.mint(wallet2.address, toBigNumber(5));
+      await erc20.distributeRewards(toBigNumber(10));
+
+      let invalidProofs = [
+        merkleTreeAllInactive.merkleTree
+          .getProof(merkleTreeAllInactive.leafs[0].leaf), // this one is invalid
+        merkleTree.getProof(leafs[1].leaf), // this one is valid
+      ]
+
+      await erc20.redistribute([wallet1.address, wallet2.address], invalidProofs);
+
+      expect(await erc20.withdrawnRewardsOf(wallet2.address)).to.eq(toBigNumber(5));
+      // small rounding inacuracy
+      expect(await erc20.withdrawableRewardsOf(wallet2.address)).to.eq(parseEther("2.5").sub(1));
+      expect(await erc20.withdrawableRewardsOf(wallet1.address)).to.eq(parseEther("7.5").sub(1));
+    })
+
+    it("Should redistribute rewards successfully", async() => {
+      const {merkleTree, leafs} = merkleTreeOneInactive
+
+      await erc20.setParticipationMerkleRoot(rootOneInactive);
+
+      await erc20.mint(wallet1.address, toBigNumber(5));
+      await erc20.mint(wallet2.address, toBigNumber(5));
+      await erc20.distributeRewards(toBigNumber(10));
+
+      await erc20.redistribute([wallet2.address], [merkleTree.getProof(leafs[1].leaf)]);
+      
+      expect(await erc20.withdrawnRewardsOf(wallet2.address)).to.eq(toBigNumber(5));
+      // small rounding inacuracy
+      expect(await erc20.withdrawableRewardsOf(wallet2.address)).to.eq(parseEther("2.5").sub(1));
+      expect(await erc20.withdrawableRewardsOf(wallet1.address)).to.eq(parseEther("7.5").sub(1));
+    });
+
+  })
 
   describe('cumulativeRewardsOf', () => {
     it('Should store total rewards for one user', async () => {
