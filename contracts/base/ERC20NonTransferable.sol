@@ -16,7 +16,7 @@ contract ERC20NonTransferable is ERC20 {
   /**
    * @dev Disables all transfer related functions
    */
-  function _transfer(address sender, address recipient, uint256 amount) internal virtual override {
+  function _transfer(address, address, uint256) internal virtual override {
     revert("ERC20NonTransferable: Transfer not supported");
   }
 
@@ -24,7 +24,7 @@ contract ERC20NonTransferable is ERC20 {
    * @dev Disables all approval related functions
    *
    */
-  function _approve(address owner, address spender, uint256 amount) internal virtual override {
+  function _approve(address, address, uint256) internal virtual override {
     revert("ERC20NonTransferable: Approval not supported");
   }
 }

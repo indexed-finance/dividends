@@ -96,7 +96,7 @@ contract SharesTimeLock is Ownable() {
   function getRewardsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getRewardsMultiplier: Duration not correct");
     uint256 month = uint256(duration) / avgSecondsMonth;
-    uint256 multiplier = maxRatioArray[month];
+    multiplier = maxRatioArray[month];
     return multiplier;
   }
 
