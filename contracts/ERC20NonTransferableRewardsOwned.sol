@@ -69,7 +69,7 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     collectForWithParticipation(msg.sender, proof);
   }
 
-  function redistribute(address[] calldata accounts, bytes32[][] calldata proofs) external {
+  function redistribute(address[] calldata accounts, bytes32[][] calldata proofs) external participationNeeded {
     require(accounts.length == proofs.length, "redistribute: Array length mismatch");
 
     uint256 totalRedistributed = 0;

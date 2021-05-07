@@ -35,7 +35,7 @@ contract ERC20NonTransferableRewards is ERC20NonTransferable, AbstractRewards {
 	 */
 	function _transfer(address from, address to, uint256 value) internal virtual override {
 		super._transfer(from, to, value);
-    _correctPointsForTransfer(from, to, value);
+    	_correctPointsForTransfer(from, to, value);
 	}
 
 	/**
@@ -46,7 +46,7 @@ contract ERC20NonTransferableRewards is ERC20NonTransferable, AbstractRewards {
 	 */
 	function _mint(address account, uint256 amount) internal virtual override {
 		super._mint(account, amount);
-    _correctPoints(account, -int256(amount));
+    	_correctPoints(account, -int256(amount));
 	}
 	
 	/** 
@@ -57,6 +57,6 @@ contract ERC20NonTransferableRewards is ERC20NonTransferable, AbstractRewards {
 	 */
 	function _burn(address account, uint256 amount) internal virtual override {
 		super._burn(account, amount);
-    _correctPoints(account, int256(amount));
+    	_correctPoints(account, int256(amount));
 	}
 }
