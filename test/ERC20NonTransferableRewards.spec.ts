@@ -14,9 +14,7 @@ describe('ERC20NonTransferableRewardBearing', () => {
   beforeEach('Deploy TestERC20Rewards', async () => {
     const factory = await ethers.getContractFactory('TestERC20NonTransferableRewards')
     erc20 = (await factory.deploy()) as TestERC20NonTransferableRewards;
-    // TODO consider consilidating into single initalizer
-    await erc20['initialize(address)'](constants.AddressZero);
-    await erc20['initialize(string,string)']("vDOUGH", "vDOUGH");
+    await erc20['initialize(string,string,address)']("vDOUGH", "vDOUGH", constants.AddressZero);
   })
 
   const getPointsPerShare = (amount: BigNumber, totalSupply: BigNumber) => amount.mul(POINTS_MULTIPLIER).div(totalSupply);

@@ -30,7 +30,7 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     _;
   }
 
-  function initialize(address token_) public initializer {
+  function initialize(string memory name_, string memory symbol_, address token_) public initializer {
     __Ownable_init();
     require(token == address(0), "Already Initialized");
     token = token_;
