@@ -22,8 +22,7 @@ contract ERC20NonTransferableRewards is ERC20NonTransferable, AbstractRewards {
     return totalSupply;
   }
 
-  constructor(string memory name, string memory symbol)
-    ERC20NonTransferable(name, symbol, 18)
+  constructor()
     AbstractRewards(_balanceOf, _totalSupply)
   {}
 

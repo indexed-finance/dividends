@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.7.6;
 
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import { SignedSafeMathUpgradeable as SignedSafeMath} from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
 import "../libraries/LowGasSafeMath.sol";
 import "../libraries/SafeCast.sol";
 import "../interfaces/IAbstractRewards.sol";

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable as Ownable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./ERC20NonTransferableRewardsOwned.sol";
 import "./libraries/LowGasSafeMath.sol";
 import "hardhat/console.sol";
@@ -11,13 +11,14 @@ contract SharesTimeLock is Ownable() {
   using LowGasSafeMath for uint256;
   using TransferHelper for address;
 
-  address public immutable depositToken;
+  address public depositToken;
 
-  ERC20NonTransferableRewardsOwned public immutable rewardsToken;
+  ERC20NonTransferableRewardsOwned public rewardsToken;
 
-  uint32 public immutable minLockDuration;
+  // min amount in 
+  uint32 public minLockDuration;
 
-  uint32 public immutable maxLockDuration;
+  uint32 public maxLockDuration;
 
   uint256 public minLockAmount;
 
@@ -96,22 +97,22 @@ contract SharesTimeLock is Ownable() {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getRewardsMultiplier: Duration not correct");
     uint256 month = uint256(duration) / avgSecondsMonth;
     multiplier = maxRatioArray[month];
+    return multiplier;
   }
 
-  constructor(
+  function initialize(
     address depositToken_,
     ERC20NonTransferableRewardsOwned rewardsToken_,
     uint32 minLockDuration_,
     uint32 maxLockDuration_,
     uint256 minLockAmount_
-  ) payable {
+  ) public {
     rewardsToken = rewardsToken_;
     depositToken = depositToken_;
     require(minLockDuration_ < maxLockDuration_, "min>=max");
     minLockDuration = minLockDuration_;
     maxLockDuration = maxLockDuration_;
     minLockAmount = minLockAmount_;
-    
   }
 
   function depositByMonths(uint256 amount, uint256 _months, address receiver) external {
@@ -182,8 +183,8 @@ contract SharesTimeLock is Ownable() {
 
       delete locks[lockIds[i]];
       uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
-      uint256 rewardShared = lock.amount.mul(multiplier) / 1e18;
-      rewardsToken.burn(lock.owner, rewardShared);
+      uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
+      rewardsToken.burn(lock.owner, rewardShares);
 
       depositToken.safeTransfer(lock.owner, lock.amount);
 
