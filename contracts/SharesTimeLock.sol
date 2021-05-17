@@ -107,6 +107,8 @@ contract SharesTimeLock is Ownable() {
     uint32 maxLockDuration_,
     uint256 minLockAmount_
   ) public {
+    __Ownable_init();
+    
     rewardsToken = rewardsToken_;
     depositToken = depositToken_;
     require(minLockDuration_ < maxLockDuration_, "min>=max");

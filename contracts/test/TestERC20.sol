@@ -15,9 +15,4 @@ contract TestERC20 is ERC20 {
   function mint(address account, uint256 amount) external {
     _mint(account, amount);
   }
-
-  function delegate(address delegatee) external {
-    delegates[msg.sender] = delegatee;
-    emit Delegate(msg.sender, delegatee);
-  }
 }

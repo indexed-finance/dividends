@@ -70,7 +70,7 @@ describe('SharesTimeLock', () => {
     depositToken = (await erc20Factory.deploy('Test', 'Test')) as TestERC20
     const rewardsFactory = await ethers.getContractFactory('ERC20NonTransferableRewardsOwned')
     rewardsToken = (await rewardsFactory.deploy() as ERC20NonTransferableRewardsOwned);
-    rewardsToken['initialize(string,string,address)']('rTest', 'rTest', depositToken.address);
+    rewardsToken['initialize(string,string,address,address)']('rTest', 'rTest', depositToken.address, wallet.address);
     const factory = await ethers.getContractFactory('SharesTimeLock') as SharesTimeLock__factory;
     timeLock = (await factory.deploy()) as SharesTimeLock
     await timeLock.initialize(
