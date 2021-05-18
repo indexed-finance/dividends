@@ -89,6 +89,13 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     _distributeRewards(totalRedistributed);
   }
 
+  function redistributeDust() external onlyMaintainer {
+    uint256 balance = IERC20(token).balanceOf(address(this));
+    require(balance > 0, "Contract balance is zero");
+    
+    _distributeRewards(balance);
+  }
+
   function distributeRewards(uint256 amount) external {
     token.safeTransferFrom(_msgSender(), address(this), amount);
     _distributeRewards(amount);
