@@ -5,6 +5,7 @@ pragma abicoder v2;
 import {OwnableUpgradeable as Ownable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {AccessControlUpgradeable as AccessControl} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {MerkleProofUpgradeable as MerkleProof} from "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
+import {IERC20Upgradeable as IERC20} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./base/ERC20NonTransferableRewards.sol";
 import "./libraries/TransferHelper.sol";
 import "hardhat/console.sol";
@@ -19,18 +20,13 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
   bytes32 public participationMerkleRoot;
 
 
-  event CollectedFor(uint256 amount, address indexed collector, address indexed to, bytes32[] proof);
+  event ClaimedFor(uint256 amount, address indexed collector, address indexed to, bytes32[] proof);
 
 
   enum ParticipationType{ INACTIVE, YES }
 
   modifier participationNeeded {
     require(participationMerkleRoot != bytes32(0), "participationNeeded: merkle root not set");
-    _;
-  }
-
-  modifier participationNotNeeded {
-    require(participationMerkleRoot == bytes32(0), "participationNeeded: merkle root set");
     _;
   }
 
@@ -48,7 +44,7 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     ERC20.initialize(name_, symbol_);
 
     _setupRole(MAINTAINER_ROLE, maintainer_);
-    _setupRole(0x00, maintainer_);
+    _setupRole(DEFAULT_ADMIN_ROLE, maintainer_);
   }
 
   function mint(address to, uint256 amount) external virtual onlyOwner {
@@ -59,28 +55,19 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     _burn(from, amount);
   }
 
-  function collectFor(address account) public participationNotNeeded {
-    uint256 amount = _prepareCollect(account);
-    token.safeTransfer(account, amount);
-  }
-
-  function collect() external {
-    collectFor(msg.sender);
-  }
-
-  function collectForWithParticipation(address account, bytes32[] memory proof) public participationNeeded {
+  function claimFor(address account, bytes32[] memory proof) public participationNeeded {
     bytes32 leaf = keccak256(abi.encodePacked(account, uint256(ParticipationType.YES)));
 
-    require(MerkleProof.verify(proof, participationMerkleRoot, leaf), "collectForWithParticipation: Invalid merkle proof");
+    require(MerkleProof.verify(proof, participationMerkleRoot, leaf), "claimFor: Invalid merkle proof");
 
     uint256 amount = _prepareCollect(account);
     token.safeTransfer(account, amount);
 
-    emit CollectedFor(amount, msg.sender, account, proof);
+    emit ClaimedFor(amount, _msgSender(), account, proof);
   }
 
-  function collectWithParticipation(bytes32[] calldata proof) external {
-    collectForWithParticipation(msg.sender, proof);
+  function claim(bytes32[] calldata proof) external {
+    claimFor(_msgSender(), proof);
   }
 
   function redistribute(address[] calldata accounts, bytes32[][] calldata proofs) external participationNeeded {
@@ -102,8 +89,15 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     _distributeRewards(totalRedistributed);
   }
 
+  function redistributeDust() external onlyMaintainer {
+    uint256 balance = IERC20(token).balanceOf(address(this));
+    require(balance > 0, "Contract balance is zero");
+    
+    _distributeRewards(balance);
+  }
+
   function distributeRewards(uint256 amount) external {
-    token.safeTransferFrom(msg.sender, address(this), amount);
+    token.safeTransferFrom(_msgSender(), address(this), amount);
     _distributeRewards(amount);
   }
 
