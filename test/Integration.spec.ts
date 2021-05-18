@@ -14,7 +14,7 @@ const MINTIME = duration.months(6);
 const MAXTIME = duration.months(36);
 
 
-describe.only('One account operations', () => {
+describe('One account operations', () => {
     let [wallet, wallet1] = waffle.provider.getWallets()
     let timeLock: SharesTimeLock;
     let depositToken: TestERC20
@@ -78,8 +78,8 @@ describe.only('One account operations', () => {
 
         await rewardsToken.redistribute([wallet1.address], [merkleTree.getProof(leafs[1].leaf)]);
 
-        await expect(rewardsToken.connect(wallet1).collectWithParticipation(merkleTree.getProof(leafs[1].leaf)))
-            .to.be.revertedWith("collectForWithParticipation: Invalid merkle proof");
+        await expect(rewardsToken.connect(wallet1).claim(merkleTree.getProof(leafs[1].leaf)))
+            .to.be.revertedWith("claimFor: Invalid merkle proof");
     });
 
     it('User who did partecipate is able to claim', async () => {
@@ -95,8 +95,8 @@ describe.only('One account operations', () => {
 
         const withdrawable = await rewardsToken.withdrawableRewardsOf(wallet.address);
 
-        expect(await rewardsToken.collectWithParticipation(merkleTree.getProof(leafs[0].leaf)))
-            .to.emit(rewardsToken, "CollectedFor")
+        expect(await rewardsToken.claim(merkleTree.getProof(leafs[0].leaf)))
+            .to.emit(rewardsToken, "ClaimedFor")
             .withArgs(withdrawable, wallet.address, wallet.address, merkleTree.getProof(leafs[0].leaf))
     });
 
