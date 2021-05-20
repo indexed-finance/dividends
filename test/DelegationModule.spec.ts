@@ -42,7 +42,9 @@ describe('DelegationModule', () => {
   describe('getOrCreateModule', () => {
     it('Should set a sub-module address for the account', async () => {
       expect(await module.subDelegationModuleForUser(wallet.address)).to.eq(constants.AddressZero)
-      await module.getOrCreateModuleInternal(wallet.address)
+      await expect(module.getOrCreateModuleInternal(wallet.address))
+        .to.emit(module, 'SubDelegationModuleCreated')
+        .withArgs(wallet.address, subModule.address)
       expect(await module.subDelegationModuleForUser(wallet.address)).to.eq(subModule.address)
     })
 
