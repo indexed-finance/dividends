@@ -18,4 +18,8 @@ contract TestDelegationModule is DelegationModule {
   function delegateFromModule(address account, address delegatee) external {
     _delegateFromModule(account, delegatee);
   }
+
+  function getOrCreateModuleInternal(address account) external {
+    getOrCreateModule(account);
+  }
 }
