@@ -8,8 +8,16 @@
   "files": [
     "contracts/interfaces",
     "contracts/libraries",
+    "contracts/ERC20DividendsOwned.sol",
+    "contracts/SharesTimeLock.sol",
     "artifacts/contracts/interfaces/**/*.json",
-    "!artifacts/contracts/interfaces/**/*.dbg.json"
+    "!artifacts/contracts/interfaces/**/*.dbg.json",
+    "artifacts/contracts/libraries/**/*.json",
+    "!artifacts/contracts/libraries/**/*.dbg.json",
+    "artifacts/contracts/SharesTimeLock.sol/*.json",
+    "!artifacts/contracts/SharesTimeLock.sol/*.dbg.json",
+    "artifacts/contracts/ERC20DividendsOwned.sol/*.json",
+    "!artifacts/contracts/ERC20DividendsOwned.sol/*.dbg.json"
   ],
   "engines": {
     "node": ">=10"
