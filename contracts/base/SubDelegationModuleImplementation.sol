@@ -4,11 +4,6 @@ pragma solidity ^0.7.0;
 import "../interfaces/IERC20Delegatable.sol";
 
 
-interface IDelegateController {
-  function getNextAction() external view returns (IERC20Delegatable token, bool delegateOrTransfer, address to, uint256 amount);
-}
-
-
 /**
  * @dev This is a work-around for the delegation mechanic in COMP.
  * It allows the balance of a staked governance token to be held in separate wallets
