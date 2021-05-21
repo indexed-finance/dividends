@@ -190,6 +190,10 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
    *
    * Uses transferFrom - caller must have approved the contract to spend `amount`
    * of `depositToken`.
+   *
+   * If the emergency unlock has been triggered, deposits will fail.
+   *
+   * `amount` must be greater than `minimumDeposit`.
    */
   function deposit(uint256 amount, uint32 duration) external override {
     require(amount >= minimumDeposit, "min deposit");
@@ -245,7 +249,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
   /**
    * @dev Delegate all voting shares the caller has in its sub-delegation module
    * to `delegatee`.
-   * Note: This will revert if the sub-delegation module does not exist.
+   * This will revert if the sub-delegation module does not exist.
    */
   function delegate(address delegatee) external override {
     _delegateFromModule(msg.sender, delegatee);
