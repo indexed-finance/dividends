@@ -62,6 +62,10 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
    * @dev Accumulated early withdrawal fees.
    */
   uint256 public override pendingFees;
+  /**
+   * @dev Allows all locked tokens to be withdrawn with no fees.
+   */
+  bool public override emergencyUnlockTriggered;
 
 /** ========== Queries ==========  */
 
@@ -89,10 +93,10 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
    * lock created at `lockedAt` with a duration of `lockDuration`, if it was withdrawan
    * now.
    *
-   * The early withdrawal fee is 0 if the full duration has passed; otherwise, it is
-   * calculated as the fraction of the total duration that has not elapsed, multiplied by
-   * the maximum base withdrawal fee and the dividends multiplier, plus the minimum
-   * withdrawal fee.
+   * The early withdrawal fee is 0 if the full duration has passed or the emergency unlock
+   * has been triggered; otherwise, it is calculated as the fraction of the total duration
+   * that has not elapsed multiplied by the maximum base withdrawal fee and the dividends
+   * multiplier, plus the minimum withdrawal fee.
    */
   function getWithdrawalParameters(
     uint256 amount,
@@ -107,7 +111,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
     uint256 multiplier = getDividendsMultiplier(lockDuration);
     dividendShares = amount.mul(multiplier) / uint256(1e18);
     uint256 unlockAt = lockedAt + lockDuration;
-    if (block.timestamp >= unlockAt) {
+    if (block.timestamp >= unlockAt || emergencyUnlockTriggered) {
       earlyWithdrawalFee = 0;
     } else {
       uint256 timeRemaining = unlockAt - block.timestamp;
@@ -119,17 +123,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
     }
   }
 
-  /**
-   * @dev Distributes the accumulated early withdrawal fees through the dividends token.
-   */
-  function distributeFees() external override {
-    uint256 amount = pendingFees;
-    require(amount > 0, "ZF");
-    pendingFees = 0;
-    IERC20(depositToken).approve(dividendsToken, amount);
-    IERC20DividendsOwned(dividendsToken).distribute(amount);
-    emit FeesDistributed(amount);
-  }
+/** ========== Constructor ==========  */
 
   constructor(
     address depositToken_,
@@ -153,6 +147,17 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
     baseEarlyWithdrawalFee = baseEarlyWithdrawalFee_;
   }
 
+/** ========== Controls ==========  */
+
+  /**
+   * @dev Trigger an emergency unlock which allows all locked tokens to be withdrawn
+   * with zero fees.
+   */
+  function triggerEmergencyUnlock() external override onlyOwner {
+    require(!emergencyUnlockTriggered, "already triggered");
+    emergencyUnlockTriggered = true;
+  }
+
   /**
    * @dev Set the minimum deposit to `minimumDeposit_`. If it is 0, there will be no minimum.
    */
@@ -160,6 +165,22 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
     minimumDeposit = minimumDeposit_;
     emit MinimumDepositSet(minimumDeposit_);
   }
+
+/** ========== Fees ==========  */
+
+  /**
+   * @dev Distributes the accumulated early withdrawal fees through the dividends token.
+   */
+  function distributeFees() external override {
+    uint256 amount = pendingFees;
+    require(amount > 0, "ZF");
+    pendingFees = 0;
+    IERC20(depositToken).approve(dividendsToken, amount);
+    IERC20DividendsOwned(dividendsToken).distribute(amount);
+    emit FeesDistributed(amount);
+  }
+
+/** ========== Locks ==========  */
 
   /**
    * @dev Lock `amount` of `depositToken` for `duration` seconds.
@@ -172,6 +193,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
    */
   function deposit(uint256 amount, uint32 duration) external override {
     require(amount >= minimumDeposit, "min deposit");
+    require(!emergencyUnlockTriggered, "deposits blocked");
     _depositToModule(msg.sender, amount);
     uint256 multiplier = getDividendsMultiplier(duration);
     uint256 dividendShares = amount.mul(multiplier) / 1e18;
@@ -188,15 +210,6 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
       amount,
       duration
     );
-  }
-
-  /**
-   * @dev Delegate all voting shares the caller has in its sub-delegation module
-   * to `delegatee`.
-   * Note: This will revert if the sub-delegation module does not exist.
-   */
-  function delegate(address delegatee) external override {
-    _delegateFromModule(msg.sender, delegatee);
   }
 
   /**
@@ -227,6 +240,15 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
       _withdrawFromModule(msg.sender, msg.sender, lock.amount);
     }
     emit LockDestroyed(lockId, msg.sender, owed);
+  }
+
+  /**
+   * @dev Delegate all voting shares the caller has in its sub-delegation module
+   * to `delegatee`.
+   * Note: This will revert if the sub-delegation module does not exist.
+   */
+  function delegate(address delegatee) external override {
+    _delegateFromModule(msg.sender, delegatee);
   }
 }
 

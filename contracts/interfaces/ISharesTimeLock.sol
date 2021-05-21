@@ -37,6 +37,8 @@ interface ISharesTimeLock is IDelegationModule {
     address owner;
   }
 
+  function emergencyUnlockTriggered() external view returns (bool);
+
   function dividendsToken() external view returns (address);
 
   function minLockDuration() external view returns (uint32);
@@ -69,6 +71,8 @@ interface ISharesTimeLock is IDelegationModule {
     external
     view
     returns (uint256 dividendShares, uint256 earlyWithdrawalFee);
+
+  function triggerEmergencyUnlock() external;
 
   function distributeFees() external;
 
