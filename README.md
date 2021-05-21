@@ -4,7 +4,7 @@ This repository contains the following primary contracts:
 
 `AbstractDividends.sol` is a generic contract for distributing pro-rata dividends amongst an arbitrary number of "shareholders", where the inheriting contract defines what a shareholder is and how many shares they have.
 
-`ERC20Dividends.sol` is an ERC20 contract implementing `AbstractDividends.sol`, where the shareholders are token holders and their balances are their shares. This contract does not expose any external functions for minting tokens.
+`ERC20Dividends.sol` is an ERC20 contract implementing `AbstractDividends.sol`, where the shareholders are token holders and their balances are their shares. This contract does not expose any external functions for minting or burning tokens.
 
 `ERC20DividendsOwned.sol` is an ERC20 contract that inherits `ERC20Dividends.sol` and allows an owner to mint and burn shares to accounts. It stores a `token` address which is the token that dividends are paid out in. It allows anyone to distribute dividends via the function `distributeDividends`.
 
@@ -18,7 +18,7 @@ This repository contains the following primary contracts:
 
 The timelock contract allows users to deposit one token (`depositToken`) and lock it for a set duration. In exchange, the user receives a second token, `dividendsToken`, which represents proportional ownership over future cashflows.
 
-The duration of the lock is limited by a configured range, but is set by the user making the deposit. The longer the deposit is locked for, the more dividend-bearing tokens will be minted for the user. The minimum lock duration will give 1 dividend token for every deposited token, and the maximum duration will give 1 + a configured bonus multiplier (set at deployment) for every locked token.
+The duration of the lock is set by the user making the deposit, limited by a configured range. The longer the deposit is locked for, the more dividend-bearing tokens will be minted for the user. The minimum lock duration will give 1 dividend token for every deposited token, and the maximum duration will give 1 + a configured bonus multiplier (set at deployment) for every locked token.
 
 In order to withdraw the locked tokens, the user must burn the amount of dividend tokens received when the deposit was made.
 
@@ -27,19 +27,26 @@ Tokens may be withdrawn early in exchange for an early withdrawal fee. The early
 ## Configuration
 
 SharesTimeLock can be configured with the following values, which are immutable after deployment:
-- `depositToken` - The ERC20 token which can be locked in exchange for dividend-bearing shares.
+- `depositToken` - The ERC20 token which can be locked in exchange for dividend-bearing shares. This must be a delegatable ERC20 such as COMP, UNI, NDX.
+- `minEarlyWithdrawalFee` - The minimum early withdrawal fee which is paid on all early withdrawals.
+- `baseEarlyWithdrawalFee` - The dynamic portion of the early withdrawal fee that is multiplied by the proportion of the lock duration that has elapsed and by the bonus multiplier for the lock.
 - `minLockDuration` - The minimum period of time that deposited tokens can be locked for.
 - `maxLockDuration` - The maximum period of time that deposited tokens can be locked for.
 - `maxDividendsBonusMultiplier` - The bonus in dividend tokens that users receive when locking tokens for `maxLockDuration`.
 - `maxEarlyWithdrawalFee` - The withdrawal fee paid if tokens are withdrawn in the same block that they are deposited.
 
+There is an additional configurable value `minimumDeposit` which can be adjusted after deployment by the owner.
+
 ## Deposits
 
-Users can deposit an arbitrary amount of `depositToken` for `duration` seconds in order to mint dividend tokens. The timelock contract uses `transferFrom` to receive the deposit, so the depositing account must give the timelock contract an allowance of at least the deposit value.
-
-The depositor can call the `delegate` function on the timelock contract to delegate the voting shares for their locked tokens to another account if it is a delegatable ERC20 token such as COMP, UNI or NDX with a `delegate(address delegatee) external;` function.
+Users can deposit `depositToken` for an arbitrary duration (between `minLockDuration` and `maxLockDuration`) in order to mint dividend-bearing tokens. The timelock contract uses `transferFrom` to receive the deposit, so the depositing account must give the timelock contract an allowance of at least the deposit value.
 
 The timelock contract does not actually hold the tokens being deposited. It uses a `DelegationModule` contract which creates a separate "sub-module" for each depositor. See [DelegationModule](#delegationmodulesol) for details about this contract.
+
+If a `minimumDeposit` value is set by the owner, the deposit amount must be greater than the minimum deposit.
+
+The depositor can call the `delegate` function on the timelock contract to delegate the voting shares for their locked tokens to another account.
+
 
 ## Lock Duration
 
@@ -68,36 +75,28 @@ We'd get the following values:
 | 50      | 100 days | 300             |
 
 ## Early Withdrawal Fees
-The early withdrawal fee is determined by the proportion of the lock period that has passed when the tokens are withdrawn. If `amount` tokens are locked for `duration` at the time `lockedAt`, the early withdrawal fee at the time `now` is:
+The early withdrawal fee has two components: a static component which is the same for every early withdrawal, and a dynamic component which is determined by the proportion of the lock period that has passed and the dividends multiplier for the lock.
+
+If `amount` tokens are locked for `duration` at the time `lockedAt`, the early withdrawal fee at the time `now` is:
 ```
 unlockAt = lockedAt+duration
 timeRemaining = unlockAt - now
-earlyWithdrawalFee = (amount * timeRemaining * maxEarlyWithdrawalFee) / lockDuration
+earlyWithdrawalFee = amount * (minEarlyWithdrawalFee +  ((baseEarlyWithdrawalFee * maxEarlyWithdrawalFee) / lockDuration) * dividendsMultiplier(duration))
 ```
 
-**Examples**
+For more information on this, [read this thread](https://forum.indexed.finance/t/create-dndx-a-dividends-token-for-indexed-fee-revenue/610/42?u=d1ll0n) or see [examples here](https://docs.google.com/spreadsheets/d/1DSqK2XcjrIDkJ82HUa2alYzfbIDPUqhWvSmtpgASeN4/edit?usp=sharing).
 
-With the configuration:
-- `maxEarlyWithdrawalFee` = 50%
+## Emergency Unlock
 
-We'd get the following values:
-| Lock Duration | Withdrawn After | Fee (%)|
-|---------------|-----------------|--------|
-| 60 days       | 0 days          | 50%    |
-| 60 days       | 20 days         | 33.33% |
-| 60 days       | 30 days         | 25%    |
-| 60 days       | 40 days         | 16.66% |
-| 60 days       | 50 days         | 8.33%  |
+The owner may trigger an "emergency unlock", which blocks deposits and allows all locked tokens to be withdrawn with no fees.
 
 # [`DelegationModule.sol`](./contracts/base/DelegationModule.sol)
 
 Delegatable tokens such as COMP do not allow partial delegation. When these tokens are wrapped, the wrapper contract can not allow the holders of the wrapped token to delegate voting shares with the underlying tokens. The only way to do so is to use a separate contract for each user which holds the underlying token and enables the user to delegate their voting shares.
 
-DelegationModule is a contract that handles this functionality by creating contracts called "Sub-delegation modules" which execute a single action in the constructor and immediately self-destruct in order to minimize gas spent.
+DelegationModule is a contract that handles this functionality by creating contracts called "sub-delegation modules". A sub-delegation module is a simple contract that allows the owner (the delegation module) to deposit, withdraw and delegate tokens held in the sub-module.
 
-These modules can execute two actions: token transfers and delegation. They use constant initialization code so that their create2 addresses can be determined with a salt, which is calculated as the hash of the user address the module is for. They determine what action to execute by querying the deployer account, which uses ephemeral storage values returned in a `getNextAction` function.
-
-### Early withdrawal fees
+When a deposit is made, the deposited tokens are transferred to a sub-delegation module which is deployed for each user. When a delegation module is first deployed for each user, it will delegate its voting shares to the account that made the deposit. After that, the user can call the timelock at any time to re-delegate the tokens they have locked.
 
 ## Scripts
 
