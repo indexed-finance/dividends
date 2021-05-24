@@ -2,6 +2,7 @@ import { ethers, waffle } from 'hardhat';
 import { expect } from "chai";
 import { TestERC20 } from '../typechain/TestERC20';
 import { ERC20NonTransferableRewardsOwned } from '../typechain/ERC20NonTransferableRewardsOwned';
+import { TestWhitelist__factory } from '../typechain/factories/TestWhitelist__factory';
 import { SharesTimeLock } from '../typechain/SharesTimeLock';
 import { SharesTimeLock__factory } from '../typechain/factories/SharesTimeLock__factory';
 import { toBigNumber } from './shared/utils';
@@ -81,6 +82,8 @@ describe('SharesTimeLock', () => {
       toBigNumber(1)
 
     );
+    
+    await timeLock.setWhitelisted(wallet.address, true);
     await depositToken.mint(wallet.address, toBigNumber(10));
     await depositToken.mint(wallet1.address, toBigNumber(10));
     await depositToken.mint(wallet2.address, toBigNumber(10));
@@ -193,7 +196,6 @@ describe('SharesTimeLock', () => {
     })
 
     it('Should mint amount times multiplier', async () => {
-
       const expected = BigNumber.from(5).mul(BigNumber.from(curveRatio[6].toString()));
       
       await expect(timeLock.depositByMonths(toBigNumber(5), 6, wallet.address))
@@ -205,6 +207,25 @@ describe('SharesTimeLock', () => {
         .to.emit(rewardsToken, 'Transfer')
         .withArgs(constants.AddressZero, receiver, expected.toString())
     })
+
+    describe("Whitelist", async () => {
+      it('Depositing from a non whitelisted smart contract should fail', async() => {
+        const testWhitelist = await (new TestWhitelist__factory(wallet)).deploy(timeLock.address);
+        await expect(testWhitelist.testWhitelistDepositByMonths(toBigNumber(5), 6, testWhitelist.address)).to.be.revertedWith("Not EOA or whitelisted");
+      });
+      it("Depositing from a whitelisted contract should work", async() => {
+        const testWhitelist = await (new TestWhitelist__factory(wallet)).deploy(timeLock.address);
+        await depositToken.transfer(testWhitelist.address, toBigNumber(5));
+        await timeLock.setWhitelisted(testWhitelist.address, true);
+        await testWhitelist.testWhitelistDepositByMonths(toBigNumber(5), 6, testWhitelist.address);
+      });
+      it("Depositing into another address while not being whitelisted should fail", async() => {
+        await timeLock.setWhitelisted(wallet.address , false);
+        await expect(timeLock.depositByMonths(toBigNumber(5), 6, receiver)).to.be.revertedWith("nly whitelised address can deposit to another address");
+      });
+    });
+
+    
   })
 
   describe('withdraw()', () => {

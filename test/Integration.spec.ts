@@ -150,7 +150,7 @@ describe('One account operations', () => {
     });
 });
 
-describe.only('Multiple accounts operations', () => {
+describe('Multiple accounts operations', () => {
     let [wallet, wallet1, wallet2, wallet3, wallet4] = waffle.provider.getWallets()
     let timeLock: SharesTimeLock;
     let depositToken: TestERC20
