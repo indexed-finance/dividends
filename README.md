@@ -1,7 +1,7 @@
 # pie-dao-staking-rewards
 
 ## Core contracts
-
+ 
 ### [ERC20NonTransferableRewardsOwned.sol](contracts/ERC20NonTransferableRewardsOwned.sol)
 
 Contract keeping tracking of voting/reward weights and handling payout of rewards. ERC20 compatible but transfers are disabled.
