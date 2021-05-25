@@ -1,28 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.7.6;
 
-import "./ERC20.sol";
-import "./AbstractDividends.sol";
+import "./ERC20NonTransferable.sol";
+import "./AbstractRewards.sol";
 
-
-contract ERC20Dividends is ERC20, AbstractDividends {
+/**
+* @dev Same as the ERC20Rewards.sol but using the non transferable ERC20 base class    
+*/
+contract ERC20NonTransferableRewards is ERC20NonTransferable, AbstractRewards {
   /**
-   * @dev Wrapper for balanceOf to give AbstractDividends a function reference.
+   * @dev Wrapper for balanceOf to give AbstractRewards a function reference.
    */
   function _balanceOf(address account) internal view returns (uint256) {
     return balanceOf[account];
   }
 
   /**
-   * @dev Wrapper for totalSupply to give AbstractDividends a function reference.
+   * @dev Wrapper for totalSupply to give AbstractRewards a function reference.
    */
   function _totalSupply() internal view returns (uint256) {
     return totalSupply;
   }
 
-  constructor(string memory name, string memory symbol)
-    ERC20(name, symbol, 18)
-    AbstractDividends(_balanceOf, _totalSupply)
+  constructor()
+    AbstractRewards(_balanceOf, _totalSupply)
   {}
 
 	/**
@@ -34,7 +35,7 @@ contract ERC20Dividends is ERC20, AbstractDividends {
 	 */
 	function _transfer(address from, address to, uint256 value) internal virtual override {
 		super._transfer(from, to, value);
-    _correctPointsForTransfer(from, to, value);
+    	_correctPointsForTransfer(from, to, value);
 	}
 
 	/**
@@ -45,7 +46,7 @@ contract ERC20Dividends is ERC20, AbstractDividends {
 	 */
 	function _mint(address account, uint256 amount) internal virtual override {
 		super._mint(account, amount);
-    _correctPoints(account, -int256(amount));
+    	_correctPoints(account, -int256(amount));
 	}
 	
 	/** 
@@ -56,6 +57,6 @@ contract ERC20Dividends is ERC20, AbstractDividends {
 	 */
 	function _burn(address account, uint256 amount) internal virtual override {
 		super._burn(account, amount);
-    _correctPoints(account, int256(amount));
+    	_correctPoints(account, int256(amount));
 	}
 }

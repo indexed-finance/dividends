@@ -49,16 +49,18 @@ contract ERC20 {
    * no way affects any of the arithmetic of the contract, including
    * {balanceOf} and {transfer}.
    */
-  uint8 public immutable decimals;
+  uint8 public constant decimals = 18;
 
-  constructor(
+  function initialize(
     string memory name_,
-    string memory symbol_,
-    uint8 decimals_
-  ) {
+    string memory symbol_
+  ) public {
+    require(keccak256(bytes(name)) == keccak256(bytes("")), "Already Initialised");
+    require(keccak256(bytes(name_)) != keccak256(bytes("")), "Name cannot be empty");
+    require(keccak256(bytes(symbol_)) != keccak256(bytes("")), "Symbol cannot be empty");
+
     name = name_;
     symbol = symbol_;
-    decimals = decimals_;
   }
 
   /**

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.7.6;
 
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import { SignedSafeMathUpgradeable as SignedSafeMath} from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
 import "../libraries/LowGasSafeMath.sol";
 import "../libraries/SafeCast.sol";
-import "../interfaces/IAbstractDividends.sol";
+import "../interfaces/IAbstractRewards.sol";
 
 /**
  * @dev Many functions in this contract were taken from this repository:
@@ -13,10 +13,10 @@ import "../interfaces/IAbstractDividends.sol";
  * https://github.com/atpar/funds-distribution-token/blob/master/EIP-DRAFT.md
  *
  * This contract has been substantially modified from the original and does not comply with ERC 2222.
- * Many functions were renamed as "dividends" rather than "funds" and the core functionality was separated
- * into this abstract contract which can be inherited by anything tracking ownership of dividend shares.
+ * Many functions were renamed as "rewards" rather than "funds" and the core functionality was separated
+ * into this abstract contract which can be inherited by anything tracking ownership of reward shares.
  */
-abstract contract AbstractDividends is IAbstractDividends {
+abstract contract AbstractRewards is IAbstractRewards {
   using LowGasSafeMath for uint256;
   using SafeCast for uint128;
   using SafeCast for uint256;
@@ -33,7 +33,7 @@ abstract contract AbstractDividends is IAbstractDividends {
 /* ========  Storage  ======== */
   uint256 public pointsPerShare;
   mapping(address => int256) internal pointsCorrection;
-  mapping(address => uint256) private withdrawnDividends;
+  mapping(address => uint256) private withdrawnRewards;
 
   constructor(
     function(address) view returns (uint256) getSharesOf_,
@@ -45,31 +45,31 @@ abstract contract AbstractDividends is IAbstractDividends {
 
 /* ========  Public View Functions  ======== */
   /**
-   * @dev Returns the total amount of dividends a given address is able to withdraw.
-   * @param account Address of a dividend recipient
-   * @return A uint256 representing the dividends `account` can withdraw
+   * @dev Returns the total amount of rewards a given address is able to withdraw.
+   * @param account Address of a reward recipient
+   * @return A uint256 representing the rewards `account` can withdraw
    */
-  function withdrawableDividendsOf(address account) public view override returns (uint256) {
-    return cumulativeDividendsOf(account).sub(withdrawnDividends[account]);
+  function withdrawableRewardsOf(address account) public view override returns (uint256) {
+    return cumulativeRewardsOf(account).sub(withdrawnRewards[account]);
   }
 
   /**
-   * @notice View the amount of dividends that an address has withdrawn.
+   * @notice View the amount of rewards that an address has withdrawn.
    * @param account The address of a token holder.
-   * @return The amount of dividends that `account` has withdrawn.
+   * @return The amount of rewards that `account` has withdrawn.
    */
-  function withdrawnDividendsOf(address account) public view override returns (uint256) {
-    return withdrawnDividends[account];
+  function withdrawnRewardsOf(address account) public view override returns (uint256) {
+    return withdrawnRewards[account];
   }
 
   /**
-   * @notice View the amount of dividends that an address has earned in total.
-   * @dev accumulativeFundsOf(account) = withdrawableDividendsOf(account) + withdrawnDividendsOf(account)
+   * @notice View the amount of rewards that an address has earned in total.
+   * @dev accumulativeFundsOf(account) = withdrawableRewardsOf(account) + withdrawnRewardsOf(account)
    * = (pointsPerShare * balanceOf(account) + pointsCorrection[account]) / POINTS_MULTIPLIER
    * @param account The address of a token holder.
-   * @return The amount of dividends that `account` has earned in total.
+   * @return The amount of rewards that `account` has earned in total.
    */
-  function cumulativeDividendsOf(address account) public view override returns (uint256) {
+  function cumulativeRewardsOf(address account) public view override returns (uint256) {
     return pointsPerShare
       .mul(getSharesOf(account))
       .toInt256()
@@ -77,19 +77,19 @@ abstract contract AbstractDividends is IAbstractDividends {
       .toUint256() / POINTS_MULTIPLIER;
   }
 
-/* ========  Dividend Utility Functions  ======== */
+/* ========  Reward Utility Functions  ======== */
 
   /** 
-   * @notice Distributes dividends to token holders.
+   * @notice Distributes rewards to token holders.
    * @dev It reverts if the total supply is 0.
    * It emits the `FundsDistributed` event if the amount to distribute is greater than 0.
-   * About undistributed dividends:
+   * About undistributed rewards:
    *   In each distribution, there is a small amount which does not get distributed,
    *   which is `(amount * POINTS_MULTIPLIER) % totalShares()`.
    *   With a well-chosen `POINTS_MULTIPLIER`, the amount of funds that are not getting
    *   distributed in a distribution can be less than 1 (base unit).
    */
-  function _distributeDividends(uint256 amount) internal {
+  function _distributeRewards(uint256 amount) internal {
     uint256 shares = getTotalShares();
     require(shares > 0, "SHARES");
 
@@ -97,22 +97,22 @@ abstract contract AbstractDividends is IAbstractDividends {
       pointsPerShare = pointsPerShare.add(
         amount.mul(POINTS_MULTIPLIER) / shares
       );
-      emit DividendsDistributed(msg.sender, amount);
+      emit RewardsDistributed(msg.sender, amount);
     }
   }
 
   /**
-   * @notice Prepares collection of owed dividends
-   * @dev It emits a `DividendsWithdrawn` event if the amount of withdrawn dividends is
+   * @notice Prepares collection of owed rewards
+   * @dev It emits a `RewardsWithdrawn` event if the amount of withdrawn rewards is
    * greater than 0.
    */
   function _prepareCollect(address account) internal returns (uint256) {
-    uint256 _withdrawableDividend = withdrawableDividendsOf(account);
-    if (_withdrawableDividend > 0) {
-      withdrawnDividends[account] = withdrawnDividends[account].add(_withdrawableDividend);
-      emit DividendsWithdrawn(account, _withdrawableDividend);
+    uint256 _withdrawableReward = withdrawableRewardsOf(account);
+    if (_withdrawableReward > 0) {
+      withdrawnRewards[account] = withdrawnRewards[account].add(_withdrawableReward);
+      emit RewardsWithdrawn(account, _withdrawableReward);
     }
-    return _withdrawableDividend;
+    return _withdrawableReward;
   }
 
   function _correctPointsForTransfer(address from, address to, uint256 shares) internal {

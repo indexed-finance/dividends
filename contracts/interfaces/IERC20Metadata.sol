@@ -1,6 +1,6 @@
  // SPDX-License-Identifier: MIT
 pragma solidity =0.7.6;
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Upgradeable as IERC20} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 
 interface IERC20Metadata is IERC20 {

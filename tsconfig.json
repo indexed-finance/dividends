@@ -6,8 +6,9 @@
     "esModuleInterop": true,
     "outDir": "dist",
     "typeRoots": ["./typechain", "./node_modules/@types"],
-    "types": ["@nomiclabs/hardhat-ethers", "@nomiclabs/hardhat-waffle"]
+    "types": ["@nomiclabs/hardhat-ethers", "@nomiclabs/hardhat-waffle"],
+    "allowJs": true
   },
-  "include": ["./test"],
+  "include": ["./test", "./tasks", "./utils"],
   "files": ["./hardhat.config.ts"]
 }
