@@ -8,15 +8,15 @@ contract TestWhitelist {
 
     SharesTimeLock public immutable sharesTimeLock;
 
-    constructor(address _sharesTimeLock) {
-        sharesTimeLock = SharesTimeLock(_sharesTimeLock);
+    constructor(address sharesTimeLock_) {
+        sharesTimeLock = SharesTimeLock(sharesTimeLock_);
     }
 
     /// @notice Deposit tokens should already be in there
-    function testWhitelistDepositByMonths(uint256 _amount, uint256 _months, address _receiver) external {
+    function testWhitelistDepositByMonths(uint256 amount, uint256 months, address receiver) external {
         IERC20 token = IERC20(sharesTimeLock.depositToken());
 
-        token.approve(address(sharesTimeLock), _amount);
-        sharesTimeLock.depositByMonths(_amount, _months, _receiver);
+        token.approve(address(sharesTimeLock), amount);
+        sharesTimeLock.depositByMonths(amount, months, receiver);
     }
 }
