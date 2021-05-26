@@ -72,6 +72,7 @@ contract SharesTimeLock is Ownable() {
   ];
 
   event MinLockAmountChanged(uint256 newLockAmount);
+  event WhitelistedChanged(address indexed user, bool indexed whitelisted);
   event Deposited(uint256 amount, uint32 lockDuration, address indexed owner);
   event Withdrawn(uint256 amount, address indexed owner);
   event Ejected(uint256 amount, address indexed owner);
@@ -85,6 +86,10 @@ contract SharesTimeLock is Ownable() {
   }
 
   Lock[] public locks;
+
+  mapping(address => bool) public whitelisted;
+
+ 
 
   function getLocksLength() external view returns (uint256) {
     return locks.length;
@@ -118,7 +123,16 @@ contract SharesTimeLock is Ownable() {
   }
 
   function depositByMonths(uint256 amount, uint256 _months, address receiver) external {
-    //require(_months > 5 && _months <= 36, 'Wrong duration');
+    // only allow whitelisted contracts or EOAS
+    require(
+      tx.origin == _msgSender() || whitelisted[_msgSender()],
+      "Not EOA or whitelisted"
+    );
+    // only allow whitelisted addresses to deposit to another address
+    require(
+      _msgSender() == receiver || whitelisted[_msgSender()],
+      "Only whitelised address can deposit to another address"
+    );
     uint32 duration = uint32( _months.mul(AVG_SECONDS_MONTH) );
     deposit(amount, duration, receiver);
   }
@@ -200,5 +214,10 @@ contract SharesTimeLock is Ownable() {
   function setMinLockAmount(uint256 minLockAmount_) external onlyOwner {
     minLockAmount = minLockAmount_;
     emit MinLockAmountChanged(minLockAmount_);
+  }
+
+  function setWhitelisted(address user_, bool whitelisted_) external onlyOwner {
+    whitelisted[user_] = whitelisted_;
+    emit WhitelistedChanged(user_, whitelisted_);
   }
 }
