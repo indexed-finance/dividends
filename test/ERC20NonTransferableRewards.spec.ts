@@ -118,20 +118,17 @@ describe('ERC20NonTransferableRewardBearing', () => {
 
   describe('prepareCollect', () => {
     it('Does nothing if user balance or rewards are 0', async () => {
-      await erc20.collect();
-      expect(await erc20.withdrawnRewardsOf(wallet.address)).to.eq(0);
+      expect(await erc20.withdrawableRewardsOf(wallet.address)).to.eq(0);
     })
 
     it('Updates withdrawnRewards', async () => {
       await erc20.mint(wallet.address, toBigNumber(5));
       await erc20.distributeRewards(toBigNumber(10));
-      await erc20.collect();
-      expect(await erc20.withdrawnRewardsOf(wallet.address)).to.eq(toBigNumber(10))
-      expect(await erc20.withdrawableRewardsOf(wallet.address)).to.eq(0)
+      expect(await erc20.withdrawableRewardsOf(wallet.address)).to.eq(toBigNumber(10))
     })
   });
 
-  describe("collect", async() => {
+  describe("claim", async() => {
     const ParticipationTypes = {
       INACTIVE: 0,
       YES: 1
@@ -144,33 +141,37 @@ describe('ERC20NonTransferableRewardBearing', () => {
       },
       {
         address: wallet1.address,
-        participation: ParticipationTypes.INACTIVE
+        participation: ParticipationTypes.YES
       }
     ];
 
     const {merkleTree, leafs} = createParticipationTree(entries);
 
-    describe("Without participation root set", async() => {
-      it("Calling collect() should work", async() => {
+    beforeEach('sets the root', async () => {
+      await erc20.setParticipationMerkleRoot(merkleTree.getRoot());
+    });
+
+    describe("claim() and claimFor() unit test", async() => {
+      it("Calling claim() should work", async() => {
         await erc20.mint(wallet1.address, toBigNumber(5));
         await erc20.mint(wallet.address, toBigNumber(5));
         await erc20.distributeRewards(toBigNumber(10));
         
         expect(await erc20.withdrawableRewardsOf(wallet.address)).to.eq(toBigNumber(5));
         
-        await erc20.collect()
+        await erc20.claim(merkleTree.getProof(leafs[0].leaf));
 
         expect(await erc20.withdrawnRewardsOf(wallet.address)).to.eq(toBigNumber(5));
       });
 
-      it("Calling collectFor() should work", async() => {
+      it("Calling claimFor() should work", async() => {
         await erc20.mint(wallet1.address, toBigNumber(5));
         await erc20.mint(wallet.address, toBigNumber(5));
         await erc20.distributeRewards(toBigNumber(10));
         
         expect(await erc20.withdrawableRewardsOf(wallet1.address)).to.eq(toBigNumber(5));
         
-        await erc20.collectFor(wallet1.address)
+        await erc20.claimFor(wallet1.address, merkleTree.getProof(leafs[1].leaf));
 
         expect(await erc20.withdrawnRewardsOf(wallet1.address)).to.eq(toBigNumber(5));
       });
@@ -179,6 +180,26 @@ describe('ERC20NonTransferableRewardBearing', () => {
 
     describe("With participation root set", async() => {
       let root:string;
+
+      const ParticipationTypes = {
+        INACTIVE: 0,
+        YES: 1
+      }
+      
+      const entries: ParticipationEntry[] = [
+        {
+          address: wallet.address,
+          participation: ParticipationTypes.YES
+        },
+        {
+          address: wallet1.address,
+          participation: ParticipationTypes.INACTIVE
+        }
+      ];
+  
+      const {merkleTree, leafs} = createParticipationTree(entries);
+  
+
       beforeEach(async() => {
         root = merkleTree.getRoot();
         await erc20.setParticipationMerkleRoot(root);
@@ -197,7 +218,7 @@ describe('ERC20NonTransferableRewardBearing', () => {
         await erc20.mint(wallet.address, toBigNumber(5));
         await erc20.distributeRewards(toBigNumber(10));
         
-        await erc20.collectWithParticipation(merkleTree.getProof(leafs[0].leaf));
+        await erc20.claim(merkleTree.getProof(leafs[0].leaf));
 
         expect(await erc20.withdrawnRewardsOf(wallet.address)).to.eq(toBigNumber(10))
         expect(await erc20.withdrawableRewardsOf(wallet.address)).to.eq(0)
@@ -207,8 +228,8 @@ describe('ERC20NonTransferableRewardBearing', () => {
         await erc20.mint(wallet1.address, toBigNumber(5));
         await erc20.distributeRewards(toBigNumber(10));
         
-        await expect(erc20.connect(wallet1).collectWithParticipation(merkleTree.getProof(leafs[1].leaf)))
-          .to.be.revertedWith("collectForWithParticipation: Invalid merkle proof");
+        await expect(erc20.connect(wallet1).claim(merkleTree.getProof(leafs[1].leaf)))
+          .to.be.revertedWith("claimFor: Invalid merkle proof");
       });
 
       it("Redistributing rewards should work", async() => {

@@ -22,7 +22,7 @@ contract SharesTimeLock is Ownable() {
 
   uint256 public minLockAmount;
 
-  uint256 private constant avgSecondsMonth = 2628000;
+  uint256 private constant AVG_SECONDS_MONTH = 2628000;
 
   /*
     Mapping of coefficient for the staking curve
@@ -95,7 +95,7 @@ contract SharesTimeLock is Ownable() {
    */
   function getRewardsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getRewardsMultiplier: Duration not correct");
-    uint256 month = uint256(duration) / avgSecondsMonth;
+    uint256 month = uint256(duration) / AVG_SECONDS_MONTH;
     multiplier = maxRatioArray[month];
     return multiplier;
   }
@@ -119,13 +119,13 @@ contract SharesTimeLock is Ownable() {
 
   function depositByMonths(uint256 amount, uint256 _months, address receiver) external {
     //require(_months > 5 && _months <= 36, 'Wrong duration');
-    uint32 duration = uint32( _months.mul(avgSecondsMonth) );
+    uint32 duration = uint32( _months.mul(AVG_SECONDS_MONTH) );
     deposit(amount, duration, receiver);
   }
 
   function deposit(uint256 amount, uint32 duration, address receiver) internal {
     require(amount >= minLockAmount, "Deposit: amount too small");
-    depositToken.safeTransferFrom(msg.sender, address(this), amount);
+    depositToken.safeTransferFrom(_msgSender(), address(this), amount);
     uint256 multiplier = getRewardsMultiplier(duration);
     uint256 rewardShares = amount.mul(multiplier) / 1e18;
     rewardsToken.mint(receiver, rewardShares);
@@ -140,20 +140,20 @@ contract SharesTimeLock is Ownable() {
 
   function withdraw(uint256 lockId) external {
     Lock memory lock = locks[lockId];
-    require(msg.sender == lock.owner, "!owner");
+    require(_msgSender() == lock.owner, "!owner");
     require(block.timestamp > lock.lockedAt + lock.lockDuration, "lock not expired");
     delete locks[lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
     uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
-    rewardsToken.burn(msg.sender, rewardShares);
+    rewardsToken.burn(_msgSender(), rewardShares);
       
-    depositToken.safeTransfer(msg.sender, lock.amount);
-    emit Withdrawn(lock.amount, msg.sender);
+    depositToken.safeTransfer(_msgSender(), lock.amount);
+    emit Withdrawn(lock.amount, _msgSender());
   }
 
   function boostToMax(uint256 lockId) external {
     Lock memory lock = locks[lockId];
-    require(msg.sender == lock.owner, "!owner");
+    require(_msgSender() == lock.owner, "!owner");
 
     delete locks[lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
@@ -162,15 +162,15 @@ contract SharesTimeLock is Ownable() {
 
     uint256 newMultiplier = getRewardsMultiplier(maxLockDuration);
     uint256 newRewardShares = lock.amount.mul(newMultiplier) / 1e18;
-    rewardsToken.mint(msg.sender, newRewardShares.sub(rewardShares));
+    rewardsToken.mint(_msgSender(), newRewardShares.sub(rewardShares));
     locks.push(Lock({
       amount: lock.amount,
       lockedAt: uint32(block.timestamp),
       lockDuration: maxLockDuration,
-      owner: msg.sender
+      owner: _msgSender()
     }));
 
-    emit BoostedToMax(lock.amount, msg.sender);
+    emit BoostedToMax(lock.amount, _msgSender());
   }
 
   // Eject expired locks
