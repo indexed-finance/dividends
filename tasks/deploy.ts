@@ -68,7 +68,7 @@ task("deploy-staking-proxied")
         const timeLock = SharesTimeLock__factory.connect(timeLockProxy.address, signer);
 
         // initialize contracts
-        await dToken["initialize(string,string,address)"](taskArgs.name, taskArgs.symbol, taskArgs.rewardToken);
+        await dToken["initialize(string,string,address,address)"](taskArgs.name, taskArgs.symbol, taskArgs.rewardToken, signer.address);
         await timeLock["initialize(address,address,uint32,uint32,uint256)"](
             taskArgs.depositToken,
             taskArgs.rewardToken,
