@@ -82,7 +82,6 @@ contract SharesTimeLock is Ownable() {
     uint256 amount;
     uint32 lockedAt;
     uint32 lockDuration;
-    address owner;
   }
 
   struct StakingData {
@@ -102,8 +101,8 @@ contract SharesTimeLock is Ownable() {
 
  
 
-  function getLocksLength() external view returns (uint256) {
-    return locks.length;
+  function getLocksOfLength(address account) external view returns (uint256) {
+    return locksOf[account].length;
   }
 
   /**
@@ -154,20 +153,18 @@ contract SharesTimeLock is Ownable() {
     uint256 multiplier = getRewardsMultiplier(duration);
     uint256 rewardShares = amount.mul(multiplier) / 1e18;
     rewardsToken.mint(receiver, rewardShares);
-    locks.push(Lock({
+    locksOf[receiver].push(Lock({
       amount: amount,
       lockedAt: uint32(block.timestamp),
-      lockDuration: duration,
-      owner: receiver
+      lockDuration: duration
     }));
     emit Deposited(amount, duration, receiver);
   }
 
   function withdraw(uint256 lockId) external {
-    Lock memory lock = locks[lockId];
-    require(_msgSender() == lock.owner, "!owner");
+    Lock memory lock = locksOf[_msgSender()][lockId];
     require(block.timestamp > lock.lockedAt + lock.lockDuration, "lock not expired");
-    delete locks[lockId];
+    delete locksOf[_msgSender()][lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
     uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
     rewardsToken.burn(_msgSender(), rewardShares);
@@ -177,45 +174,49 @@ contract SharesTimeLock is Ownable() {
   }
 
   function boostToMax(uint256 lockId) external {
-    Lock memory lock = locks[lockId];
-    require(_msgSender() == lock.owner, "!owner");
+    Lock memory lock = locksOf[_msgSender()][lockId];
 
-    delete locks[lockId];
+    delete locksOf[_msgSender()][lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
     uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
-    require(rewardsToken.balanceOf(lock.owner) >= rewardShares, "boostToMax: Wrong shares number");
+    require(rewardsToken.balanceOf(_msgSender()) >= rewardShares, "boostToMax: Wrong shares number");
 
     uint256 newMultiplier = getRewardsMultiplier(maxLockDuration);
     uint256 newRewardShares = lock.amount.mul(newMultiplier) / 1e18;
     rewardsToken.mint(_msgSender(), newRewardShares.sub(rewardShares));
-    locks.push(Lock({
+    locksOf[_msgSender()].push(Lock({
       amount: lock.amount,
       lockedAt: uint32(block.timestamp),
-      lockDuration: maxLockDuration,
-      owner: _msgSender()
+      lockDuration: maxLockDuration
     }));
 
     emit BoostedToMax(lock.amount, _msgSender());
   }
 
   // Eject expired locks
-  function eject(uint256[] memory lockIds) external {
-    
+  function eject(address[] memory lockAccounts, uint256[] memory lockIds) external {
+    require(lockAccounts.length == lockIds.length, "Array length mismatch");
+  
     for(uint256 i = 0; i < lockIds.length; i ++) {
-      Lock memory lock = locks[lockIds[i]];
+      //skip if lockId is invalid
+      if(locksOf[lockAccounts[i]].length - 1 < lockIds[i]) {
+        continue;
+      }
+
+      Lock memory lock = locksOf[lockAccounts[i]][lockIds[i]];
       //skip if lock not expired or locked amount is zero
       if(lock.lockedAt + lock.lockDuration > block.timestamp || lock.amount == 0) {
         continue;
       }
 
-      delete locks[lockIds[i]];
+      delete locksOf[lockAccounts[i]][lockIds[i]];
       uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
       uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
-      rewardsToken.burn(lock.owner, rewardShares);
+      rewardsToken.burn(lockAccounts[i], rewardShares);
 
-      depositToken.safeTransfer(lock.owner, lock.amount);
+      depositToken.safeTransfer(lockAccounts[i], lock.amount);
 
-      emit Ejected(lock.amount, lock.owner);
+      emit Ejected(lock.amount, lockAccounts[i]);
     }
   }
 

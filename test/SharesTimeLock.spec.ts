@@ -186,13 +186,12 @@ describe('SharesTimeLock', () => {
     it('Should push to locks', async () => {
       await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
       const timestamp = await latest()
-      expect(await timeLock.locks(0)).to.deep.eq([
+      expect(await timeLock.locksOf(wallet.address, 0)).to.deep.eq([
         toBigNumber(5),
         timestamp,
-        MINTIME,
-        wallet.address
+        MINTIME
       ])
-      expect(await timeLock.getLocksLength()).to.eq(1)
+      expect(await timeLock.getLocksOfLength(wallet.address)).to.eq(1)
     })
 
     it('Should mint amount times multiplier', async () => {
@@ -242,12 +241,12 @@ describe('SharesTimeLock', () => {
     //   ).to.be.revertedWith('ERC20: burn amount exceeds balance')
     // })
 
-    it('Should revert if caller is not the owner', async () => {
-      await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
-      await expect(
-        timeLock.connect(wallet1).withdraw(0)
-      ).to.be.revertedWith('!owner')
-    })
+    // it('Should revert if caller is not the owner', async () => {
+    //   await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
+    //   await expect(
+    //     timeLock.connect(wallet1).withdraw(0)
+    //   ).to.be.revertedWith('!owner')
+    // })
 
     describe('When timelock has passed', () => {
       it('Should burn rewards token from caller', async () => {
@@ -275,10 +274,10 @@ describe('SharesTimeLock', () => {
         await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
         await setNextTimestamp(timestamp + duration.months(6) + duration.seconds(5) )
         await timeLock.withdraw(0)
-        expect(await timeLock.locks(0)).to.deep.eq([
-          constants.Zero, 0, 0, constants.AddressZero
+        expect(await timeLock.locksOf(wallet.address, 0)).to.deep.eq([
+          constants.Zero, 0, 0
         ])
-        expect(await timeLock.getLocksLength()).to.eq(1)
+        expect(await timeLock.getLocksOfLength(wallet.address)).to.eq(1)
       })
     })
 
@@ -298,29 +297,31 @@ describe('SharesTimeLock', () => {
       await timeLock.connect(wallet1).depositByMonths(toBigNumber(10), 6, wallet1.address)
 
       expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(20));
-      expect(await timeLock.getLocksLength()).to.eq(2);
+      expect(await timeLock.getLocksOfLength(wallet.address)).to.eq(1);
+      expect(await timeLock.getLocksOfLength(wallet1.address)).to.eq(1);
 
       const timestamp = await latest();
       await setNextTimestamp(timestamp + duration.months(6) + duration.hours(1));
       
-      expect(await timeLock.eject([0, 1]))
+      expect(await timeLock.eject([wallet.address, wallet1.address], [0, 0]))
         .to.emit(timeLock, "Ejected")
         .withArgs(toBigNumber(10), wallet.address)
         .to.emit(timeLock, "Ejected")
         .withArgs(toBigNumber(10), wallet1.address)
       
-      expect(await timeLock.getLocksLength()).to.eq(2);
+      expect(await timeLock.getLocksOfLength(wallet.address)).to.eq(1);
+      expect(await timeLock.getLocksOfLength(wallet1.address)).to.eq(1);
 
       expect(await depositToken.balanceOf(timeLock.address)).to.eq(0);
       expect(await depositToken.balanceOf(wallet.address)).to.eq(toBigNumber(10));
       expect(await depositToken.balanceOf(wallet1.address)).to.eq(toBigNumber(10));
 
-      expect(await timeLock.locks(0)).to.deep.eq([
-        constants.Zero, 0, 0, constants.AddressZero
+      expect(await timeLock.locksOf(wallet.address, 0)).to.deep.eq([
+        constants.Zero, 0, 0
       ])
 
-      expect(await timeLock.locks(1)).to.deep.eq([
-        constants.Zero, 0, 0, constants.AddressZero
+      expect(await timeLock.locksOf(wallet1.address, 0)).to.deep.eq([
+        constants.Zero, 0, 0
       ])
 
     })
@@ -338,33 +339,35 @@ describe('SharesTimeLock', () => {
       await setNextTimestamp(timestampThree + duration.months(6) + duration.hours(1));
 
       expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(30));
-      expect(await timeLock.getLocksLength()).to.eq(3);
+      expect(await timeLock.getLocksOfLength(wallet.address)).to.eq(1);
+      expect(await timeLock.getLocksOfLength(wallet1.address)).to.eq(1);
+      expect(await timeLock.getLocksOfLength(wallet2.address)).to.eq(1);
       
-      expect(await timeLock.eject([0, 1, 2]))
+      expect(await timeLock.eject([wallet.address, wallet1.address, wallet2.address], [0, 0, 0]));
 
       expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(20));
       expect(await depositToken.balanceOf(wallet.address)).to.eq(0);
       expect(await depositToken.balanceOf(wallet1.address)).to.eq(0);
       expect(await depositToken.balanceOf(wallet2.address)).to.eq(toBigNumber(10));
 
-      expect(await timeLock.getLocksLength()).to.eq(3);
+      expect(await timeLock.getLocksOfLength(wallet.address)).to.eq(1);
+      expect(await timeLock.getLocksOfLength(wallet1.address)).to.eq(1);
+      expect(await timeLock.getLocksOfLength(wallet2.address)).to.eq(1);
 
-      expect(await timeLock.locks(0)).to.deep.eq([
+      expect(await timeLock.locksOf(wallet.address, 0)).to.deep.eq([
         toBigNumber(10), 
         timestampOne, 
-        duration.months(9), 
-        wallet.address
+        duration.months(9)
       ])
 
-      expect(await timeLock.locks(1)).to.deep.eq([
+      expect(await timeLock.locksOf(wallet1.address, 0)).to.deep.eq([
         toBigNumber(10), 
         timestampTwo, 
-        duration.months(9), 
-        wallet1.address
+        duration.months(9)
       ])
 
-      expect(await timeLock.locks(2)).to.deep.eq([
-        constants.Zero, 0, 0, constants.AddressZero
+      expect(await timeLock.locksOf(wallet2.address, 0)).to.deep.eq([
+        constants.Zero, 0, 0
       ])
     })
   })
@@ -387,11 +390,10 @@ describe('SharesTimeLock', () => {
     it('Should boost the lock to max time', async () => {
       await timeLock.depositByMonths(toBigNumber(5), 6, wallet.address)
       let timestamp = await latest()
-      expect(await timeLock.locks(0)).to.deep.eq([
+      expect(await timeLock.locksOf(wallet.address, 0)).to.deep.eq([
         toBigNumber(5),
         timestamp,
-        MINTIME,
-        wallet.address
+        MINTIME
       ])
 
       const later = timestamp + duration.months(1);
@@ -400,11 +402,10 @@ describe('SharesTimeLock', () => {
       await timeLock.boostToMax(0);
 
       //Check new lock is correct
-      expect(await timeLock.locks(1)).to.deep.eq([
+      expect(await timeLock.locksOf(wallet.address, 1)).to.deep.eq([
         toBigNumber(5),
         later,
-        MAXTIME,
-        wallet.address
+        MAXTIME
       ])
     })
 
@@ -440,12 +441,12 @@ describe('SharesTimeLock', () => {
       await timeLock.boostToMax(0);
       
       //Check the lock has been deleted
-      expect(await timeLock.locks(0)).to.deep.eq([
-        constants.Zero, 0, 0, constants.AddressZero
+      expect(await timeLock.locksOf(wallet.address, 0)).to.deep.eq([
+        constants.Zero, 0, 0
       ])
       
       //Check the total amount of locks
-      expect(await timeLock.getLocksLength()).to.eq(2)
+      expect(await timeLock.getLocksOfLength(wallet.address)).to.eq(2)
     })
   })
   
