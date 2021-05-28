@@ -110,7 +110,7 @@ contract SharesTimeLock is Ownable() {
    */
   function getRewardsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getRewardsMultiplier: Duration not correct");
-    uint256 month = uint256(duration) / AVG_SECONDS_MONTH;
+    uint256 month = uint256(duration) / secondsPerMonth();
     multiplier = maxRatioArray[month];
     return multiplier;
   }
@@ -143,7 +143,7 @@ contract SharesTimeLock is Ownable() {
       _msgSender() == receiver || whitelisted[_msgSender()],
       "Only whitelised address can deposit to another address"
     );
-    uint32 duration = uint32( months.mul(AVG_SECONDS_MONTH) );
+    uint32 duration = uint32( months.mul(secondsPerMonth()) );
     deposit(amount, duration, receiver);
   }
 

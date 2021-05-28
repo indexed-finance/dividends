@@ -3,6 +3,7 @@ import { ERC20NonTransferableRewardsOwned } from "../typechain/ERC20NonTransfera
 import { ERC20NonTransferableRewardsOwned__factory } from "../typechain/factories/ERC20NonTransferableRewardsOwned__factory";
 import { TestERC20__factory } from "../typechain/factories/TestERC20__factory";
 import { SharesTimeLock__factory } from "../typechain/factories/SharesTimeLock__factory";
+import { TestSharesTimeLock__factory } from "../typechain/factories/TestSharesTimeLock__factory";
 import { PProxy__factory } from "../typechain/factories/PProxy__factory";
 import { ContractFunctionVisibility } from "hardhat/internal/hardhat-network/stack-traces/model";
 import { parseEther } from "ethers/lib/utils";
@@ -147,6 +148,7 @@ task("deploy-staking-proxied-testing")
         
         const data = await timeLock.getStakingData(signer.address);
         console.log(data);
+        await timeLock.setSecondsPerMonth(taskArgs.secondsPerMonth);
 
         console.table(contracts);
         console.log("done");
