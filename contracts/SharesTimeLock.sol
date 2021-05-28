@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;
+pragma abicoder v2;
 
 import {OwnableUpgradeable as Ownable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./ERC20NonTransferableRewardsOwned.sol";
@@ -99,7 +100,6 @@ contract SharesTimeLock is Ownable() {
 
   mapping(address => bool) public whitelisted;
 
- 
 
   function getLocksOfLength(address account) external view returns (uint256) {
     return locksOf[account].length;
@@ -231,6 +231,20 @@ contract SharesTimeLock is Ownable() {
   function setWhitelisted(address user, bool isWhitelisted) external onlyOwner {
     whitelisted[user] = isWhitelisted;
     emit WhitelistedChanged(user, isWhitelisted);
+  }
+
+  function getStakingData(address account) external view returns (StakingData memory data) {
+    data.totalStaked = IERC20(depositToken).balanceOf(address(this));
+    data.rewardTokenTotalSupply = rewardsToken.totalSupply();
+    data.accountRewardTokenBalance = rewardsToken.balanceOf(account);
+    data.accountWithdrawableRewards = rewardsToken.withdrawableRewardsOf(account);
+    data.accountWithdrawnRewards = rewardsToken.withdrawnRewardsOf(account);
+
+    data.accountLocks = new Lock[](locksOf[account].length);
+
+    for(uint256 i = 0; i < locksOf[account].length; i ++) {
+      data.accountLocks[i] = locksOf[account][i];
+    }
   }
 
   /**
