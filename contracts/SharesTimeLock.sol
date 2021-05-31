@@ -195,13 +195,14 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
    *
    * `amount` must be greater than `minimumDeposit`.
    */
-  function deposit(uint256 amount, uint32 duration) external override {
+  function deposit(uint256 amount, uint32 duration) external override returns (uint256 lockId) {
     require(amount >= minimumDeposit, "min deposit");
     require(!emergencyUnlockTriggered, "deposits blocked");
     _depositToModule(msg.sender, amount);
     uint256 multiplier = getDividendsMultiplier(duration);
     uint256 dividendShares = amount.mul(multiplier) / 1e18;
     IERC20DividendsOwned(dividendsToken).mint(msg.sender, dividendShares);
+    lockId = locks.length;
     locks.push(Lock({
       amount: amount,
       lockedAt: uint32(block.timestamp),
@@ -209,7 +210,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
       owner: msg.sender
     }));
     emit LockCreated(
-      locks.length - 1,
+      lockId,
       msg.sender,
       amount,
       duration

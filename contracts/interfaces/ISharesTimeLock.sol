@@ -76,7 +76,7 @@ interface ISharesTimeLock is IDelegationModule {
 
   function distributeFees() external;
 
-  function deposit(uint256 amount, uint32 duration) external;
+  function deposit(uint256 amount, uint32 duration) external returns (uint256);
 
   function delegate(address delegatee) external;
 
