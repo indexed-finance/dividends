@@ -6,7 +6,7 @@ import { constants } from 'ethers';
 import { getContractAddress } from '@ethersproject/address';
 
 describe('DelegationModule', () => {
-  let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
+  let [wallet, wallet1] = waffle.provider.getWallets()
   let module: TestDelegationModule
   let depositToken: TestERC20
   let moduleImplementation: SubDelegationModuleImplementation

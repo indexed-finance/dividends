@@ -5,7 +5,7 @@ import { ERC20DividendsOwned } from '../typechain/ERC20DividendsOwned';
 import { SharesTimeLock } from '../typechain/SharesTimeLock';
 import { toBigNumber } from './shared/utils';
 import { advanceBlock, duration, latest, setNextTimestamp } from './shared/time';
-import { BigNumber, constants } from 'ethers';
+import { constants } from 'ethers';
 import { getContractAddress } from '@ethersproject/address';
 
 const minLockDuration = duration.days(90);
@@ -15,7 +15,7 @@ const baseEarlyWithdrawalFee = toBigNumber(1, 17)
 const maxDividendsBonusMultiplier = toBigNumber(2) // 200%
 
 describe('SharesTimelock', () => {
-  let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
+  let [wallet, wallet1] = waffle.provider.getWallets()
   let timeLock: SharesTimeLock;
   let depositToken: TestERC20
   let dividendsToken: ERC20DividendsOwned
