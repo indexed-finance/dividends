@@ -233,20 +233,6 @@ contract SharesTimeLock is Ownable() {
     emit WhitelistedChanged(user, isWhitelisted);
   }
 
-  function getStakingData(address account) external view returns (StakingData memory data) {
-    data.totalStaked = IERC20(depositToken).balanceOf(address(this));
-    data.rewardTokenTotalSupply = rewardsToken.totalSupply();
-    data.accountRewardTokenBalance = rewardsToken.balanceOf(account);
-    data.accountWithdrawableRewards = rewardsToken.withdrawableRewardsOf(account);
-    data.accountWithdrawnRewards = rewardsToken.withdrawnRewardsOf(account);
-
-    data.accountLocks = new Lock[](locksOf[account].length);
-
-    for(uint256 i = 0; i < locksOf[account].length; i ++) {
-      data.accountLocks[i] = locksOf[account][i];
-    }
-  }
-
   /**
   * Getters
   */
