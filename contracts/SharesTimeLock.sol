@@ -85,7 +85,18 @@ contract SharesTimeLock is Ownable() {
     address owner;
   }
 
-  Lock[] public locks;
+  struct StakingData {
+    uint256 totalStaked;
+    uint256 rewardTokenTotalSupply;
+    uint256 accountRewardTokenBalance;
+    uint256 accountWithdrawableRewards;
+    uint256 accountWithdrawnRewards;
+    uint256 accountDepositTokenBalance;
+    uint256 accountDepositTokenAllowance;
+    Lock[] accountLocks;
+  }
+
+  mapping(address => Lock[]) public locksOf;
 
   mapping(address => bool) public whitelisted;
 
@@ -219,5 +230,41 @@ contract SharesTimeLock is Ownable() {
   function setWhitelisted(address user, bool isWhitelisted) external onlyOwner {
     whitelisted[user] = isWhitelisted;
     emit WhitelistedChanged(user, isWhitelisted);
+  }
+
+  /**
+  * Getters
+  */
+
+  function getStakingData(address account) external view returns (StakingData memory data) {
+    data.totalStaked = IERC20(depositToken).balanceOf(address(this));
+    data.rewardTokenTotalSupply = rewardsToken.totalSupply();
+    data.accountRewardTokenBalance = rewardsToken.balanceOf(account);
+    data.accountWithdrawableRewards = rewardsToken.withdrawableRewardsOf(account);
+    data.accountWithdrawnRewards = rewardsToken.withdrawnRewardsOf(account);
+    data.accountDepositTokenBalance = IERC20(depositToken).balanceOf(account);
+    data.accountDepositTokenAllowance = IERC20(depositToken).allowance(account, address(this));
+
+    data.accountLocks = new Lock[](locksOf[account].length);
+
+    for(uint256 i = 0; i < locksOf[account].length; i ++) {
+      data.accountLocks[i] = locksOf[account][i];
+    }
+  }
+
+  // Used to overwrite in testing situations
+  function secondsPerMonth() internal view virtual returns(uint256) {
+    return AVG_SECONDS_MONTH;
+  }
+
+  function canEject(address account, uint256 lockId) public view returns(bool) {
+
+    //cannot eject non existing locks
+    if(locksOf[account].length - 1 > lockId) {
+      return false;
+    }
+
+    Lock memory lock = locksOf[account][lockId];
+    return lock.lockedAt + lock.lockDuration <= block.timestamp;
   }
 }

@@ -60,7 +60,8 @@
     "compile": "COMPILE_ONLY=1 hardhat compile",
     "coverage": "hardhat coverage",
     "test": "hardhat test",
-    "clean": "rm -rf ./artifacts && rm -rf ./typechain"
+    "clean": "rm -rf ./artifacts && rm -rf ./typechain",
+    "fork": "npx hardhat node --fork https://mainnet.infura.io/v3/ffa6c1dc83e44e6c9971d4706311d5ab"
   },
   "repository": {
     "type": "git",

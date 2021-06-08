@@ -9,6 +9,7 @@ import 'solidity-coverage'
 import 'hardhat-gas-reporter'
 
 import { randomBytes } from 'crypto';
+import { network } from "hardhat";
 
 if(process.env.COMPILE_ONLY != "1") {
   require('./tasks/deploy');
@@ -21,6 +22,31 @@ const configureNetwork = (network: string, chainId: number, gasPrice?: number) =
   gasPrice: gasPrice ?? undefined
 });
 
+let networks = {
+  hardhat: {
+    allowUnlimitedContractSize: false,
+    forking: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      enabled: true
+    }
+  },
+  mainnet: configureNetwork('mainnet', 1),
+  kovan: configureNetwork('kovan', 42),
+  rinkeby: configureNetwork('rinkeby', 4),
+  goerli: configureNetwork('goerli', 5),
+  fork: {
+    url: "http://127.0.0.1:8545/"
+  }
+}
+
+if(process.env.SANDBOX_URL && process.env.SANDBOX_PVT_KEY) {
+  // @ts-ignore
+  networks.sandbox = {
+    url: process.env.SANDBOX_URL,
+    accounts: [process.env.SANDBOX_PVT_KEY],
+  }
+}
+
 export default {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
@@ -30,15 +56,7 @@ export default {
       default: 0,
     },
   },
-  networks: {
-    hardhat: {
-      allowUnlimitedContractSize: false,
-    },
-    mainnet: configureNetwork('mainnet', 1),
-    kovan: configureNetwork('kovan', 42),
-    rinkeby: configureNetwork('rinkeby', 4),
-    goerli: configureNetwork('goerli', 5),
-  },
+  networks,
   solidity: {
     version: '0.7.6',
     settings: {
