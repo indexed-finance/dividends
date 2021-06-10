@@ -449,5 +449,19 @@ describe('SharesTimeLock', () => {
       expect(await timeLock.getLocksOfLength(wallet.address)).to.eq(2)
     })
   })
+
+  describe("getStakingData", async() => {
+    it("Should work", async() => {
+      await timeLock.depositByMonths(toBigNumber(1), 6, wallet.address)
+      await timeLock.depositByMonths(toBigNumber(1), 6, wallet.address)
+      await timeLock.depositByMonths(toBigNumber(1), 6, wallet.address)
+
+      const stakingData = await timeLock.getStakingData(wallet.address);
+
+      console.log(stakingData);
+
+      // TODO convert this into a proper test
+    });
+  });
   
 })
