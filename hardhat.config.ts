@@ -13,6 +13,7 @@ import { network } from "hardhat";
 
 if(process.env.COMPILE_ONLY != "1") {
   require('./tasks/deploy');
+  require('./tasks/inspect');
 }
 
 const configureNetwork = (network: string, chainId: number, gasPrice?: number) => ({
