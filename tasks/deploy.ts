@@ -153,3 +153,17 @@ task("deploy-staking-proxied-testing")
         console.table(contracts);
         console.log("done");
 });
+
+task("deploy-timelock-implementation", async(taskArgs, {ethers}) => {
+    const signer = (await ethers.getSigners())[0];
+
+    console.log(`Deploying from: ${signer.address}`);
+
+    const contracts: any[] = [];
+
+    const timeLockImp = await (new TestSharesTimeLock__factory(signer)).deploy();
+    contracts.push({name: "timeLockImp", address: timeLockImp.address});
+    console.log("timeLockImp deployed");
+
+    console.table(contracts);
+});
