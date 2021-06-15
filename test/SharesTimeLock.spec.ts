@@ -5,6 +5,7 @@ import { ERC20NonTransferableRewardsOwned } from '../typechain/ERC20NonTransfera
 import { TestWhitelist__factory } from '../typechain/factories/TestWhitelist__factory';
 import { SharesTimeLock } from '../typechain/SharesTimeLock';
 import { SharesTimeLock__factory } from '../typechain/factories/SharesTimeLock__factory';
+import { PProxy__factory } from "../typechain/factories/PProxy__factory";
 import { toBigNumber } from './shared/utils';
 import { duration, latest, setNextTimestamp } from './shared/time';
 import { constants, BigNumber } from 'ethers';
@@ -73,7 +74,10 @@ describe('SharesTimeLock', () => {
     rewardsToken = (await rewardsFactory.deploy() as ERC20NonTransferableRewardsOwned);
     rewardsToken['initialize(string,string,address,address)']('rTest', 'rTest', depositToken.address, wallet.address);
     const factory = await ethers.getContractFactory('SharesTimeLock') as SharesTimeLock__factory;
-    timeLock = (await factory.deploy()) as SharesTimeLock
+    const timeLockIMPL = (await factory.deploy()) as SharesTimeLock
+    const timeLockProxy = (await (new PProxy__factory(wallet)).deploy());
+    await timeLockProxy.setImplementation(timeLockIMPL.address);
+    timeLock = factory.attach(timeLockProxy.address);
     await timeLock.initialize(
       depositToken.address,
       rewardsToken.address,
