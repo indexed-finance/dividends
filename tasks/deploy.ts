@@ -130,13 +130,14 @@ task("deploy-staking-proxied-testing")
         const timeLock = TestSharesTimeLock__factory.connect(timeLockProxy.address, signer);
 
         // initialize contracts
-        await dToken["initialize(string,string,address,address)"](taskArgs.name, taskArgs.symbol, taskArgs.rewardToken, signer.address);
+        await dToken["initialize(string,string,address,address)"](taskArgs.name, taskArgs.symbol, taskArgs.rewardToken, signer.address, {gasLimit: 1000000});
         await timeLock["initialize(address,address,uint32,uint32,uint256)"](
             taskArgs.depositToken,
             dToken.address,
             taskArgs.minLockDuration,
             taskArgs.maxLockDuration,
-            taskArgs.minLockAmount
+            taskArgs.minLockAmount,
+            {gasLimit: 1000000}
         );
 
         console.log("Set seconds per month");
