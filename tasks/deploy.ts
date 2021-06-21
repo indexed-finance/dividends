@@ -3,6 +3,7 @@ import { ERC20NonTransferableRewardsOwned } from "../typechain/ERC20NonTransfera
 import { ERC20NonTransferableRewardsOwned__factory } from "../typechain/factories/ERC20NonTransferableRewardsOwned__factory";
 import { TestERC20__factory } from "../typechain/factories/TestERC20__factory";
 import { SharesTimeLock__factory } from "../typechain/factories/SharesTimeLock__factory";
+import { TestSharesTimeLock__factory } from "../typechain/factories/TestSharesTimeLock__factory";
 import { PProxy__factory } from "../typechain/factories/PProxy__factory";
 import { ContractFunctionVisibility } from "hardhat/internal/hardhat-network/stack-traces/model";
 import { parseEther } from "ethers/lib/utils";
@@ -129,25 +130,47 @@ task("deploy-staking-proxied-testing")
         const timeLock = TestSharesTimeLock__factory.connect(timeLockProxy.address, signer);
 
         // initialize contracts
-        await dToken["initialize(string,string,address,address)"](taskArgs.name, taskArgs.symbol, taskArgs.rewardToken, signer.address);
+        await dToken["initialize(string,string,address,address)"](taskArgs.name, taskArgs.symbol, taskArgs.rewardToken, signer.address, {gasLimit: 1000000});
         await timeLock["initialize(address,address,uint32,uint32,uint256)"](
             taskArgs.depositToken,
             dToken.address,
             taskArgs.minLockDuration,
             taskArgs.maxLockDuration,
-            taskArgs.minLockAmount
+            taskArgs.minLockAmount,
+            {gasLimit: 1000000}
         );
 
         console.log("Set seconds per month");
         // await timeLock.setSecondsPerMonth(taskArgs.secondsPerMonth);
+        await timeLock.setSecondsPerMonth(taskArgs.secondsPerMonth, {gasLimit: 1000000});
         
         console.log("fetching depositToken");
         const depositToken = await timeLock.depositToken();
         console.log(depositToken);
         
+        console.log("transfering ownership of dToken");
+        await dToken.transferOwnership(timeLock.address, {gasLimit: 1000000});
+
+
+        console.log("getting staking data");
         const data = await timeLock.getStakingData(signer.address);
         console.log(data);
+        
 
         console.table(contracts);
         console.log("done");
+});
+
+task("deploy-timelock-implementation", async(taskArgs, {ethers}) => {
+    const signer = (await ethers.getSigners())[0];
+
+    console.log(`Deploying from: ${signer.address}`);
+
+    const contracts: any[] = [];
+
+    const timeLockImp = await (new TestSharesTimeLock__factory(signer)).deploy();
+    contracts.push({name: "timeLockImp", address: timeLockImp.address});
+    console.log("timeLockImp deployed");
+
+    console.table(contracts);
 });

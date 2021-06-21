@@ -6,3 +6,5 @@ typechain/
 coverage/
 coverage.json
 old/
+leafs.json
+proof.json

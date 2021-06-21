@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;
+pragma abicoder v2;
 
 import {OwnableUpgradeable as Ownable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./ERC20NonTransferableRewardsOwned.sol";
@@ -31,45 +32,7 @@ contract SharesTimeLock is Ownable() {
     and `k` is a constant 56.0268900276223
     the period of staking here is calculated in months.
    */
-  uint256[37] private maxRatioArray = [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    83333333333300000, // 6 
-    105586554548800000, // 7 
-    128950935744800000, // 8
-    153286798191400000, // 9
-    178485723463700000, // 10
-    204461099502300000, // 11
-    231142134539100000, // 12
-    258469880674300000, // 13
-    286394488282000000, // 14
-    314873248847800000, // 15
-    343869161986300000, // 16
-    373349862059400000, // 17
-    403286798191400000, // 18
-    433654597035900000, // 19
-    464430560048100000, // 20
-    495594261536300000, // 21
-    527127223437300000, // 22
-    559012649336100000, // 23
-    591235204823000000, // 24
-    623780834516600000, // 25
-    656636608405400000, // 26
-    689790591861100000, // 27
-    723231734933100000, // 28
-    756949777475800000, // 29
-    790935167376600000, // 30
-    825178989697100000, // 31
-    859672904965600000, // 32
-    894409095191000000, // 33
-    929380216424000000, // 34
-    964579356905500000, // 35
-    1000000000000000000 // 36
-  ];
+  uint256[37] public maxRatioArray;
 
   event MinLockAmountChanged(uint256 newLockAmount);
   event WhitelistedChanged(address indexed user, bool indexed whitelisted);
@@ -82,7 +45,6 @@ contract SharesTimeLock is Ownable() {
     uint256 amount;
     uint32 lockedAt;
     uint32 lockDuration;
-    address owner;
   }
 
   struct StakingData {
@@ -100,10 +62,9 @@ contract SharesTimeLock is Ownable() {
 
   mapping(address => bool) public whitelisted;
 
- 
 
-  function getLocksLength() external view returns (uint256) {
-    return locks.length;
+  function getLocksOfLength(address account) external view returns (uint256) {
+    return locksOf[account].length;
   }
 
   /**
@@ -111,7 +72,7 @@ contract SharesTimeLock is Ownable() {
    */
   function getRewardsMultiplier(uint32 duration) public view returns (uint256 multiplier) {
     require(duration >= minLockDuration && duration <= maxLockDuration, "getRewardsMultiplier: Duration not correct");
-    uint256 month = uint256(duration) / AVG_SECONDS_MONTH;
+    uint256 month = uint256(duration) / secondsPerMonth();
     multiplier = maxRatioArray[month];
     return multiplier;
   }
@@ -131,6 +92,46 @@ contract SharesTimeLock is Ownable() {
     minLockDuration = minLockDuration_;
     maxLockDuration = maxLockDuration_;
     minLockAmount = minLockAmount_;
+
+    maxRatioArray = [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      83333333333300000, // 6 
+      105586554548800000, // 7 
+      128950935744800000, // 8
+      153286798191400000, // 9
+      178485723463700000, // 10
+      204461099502300000, // 11
+      231142134539100000, // 12
+      258469880674300000, // 13
+      286394488282000000, // 14
+      314873248847800000, // 15
+      343869161986300000, // 16
+      373349862059400000, // 17
+      403286798191400000, // 18
+      433654597035900000, // 19
+      464430560048100000, // 20
+      495594261536300000, // 21
+      527127223437300000, // 22
+      559012649336100000, // 23
+      591235204823000000, // 24
+      623780834516600000, // 25
+      656636608405400000, // 26
+      689790591861100000, // 27
+      723231734933100000, // 28
+      756949777475800000, // 29
+      790935167376600000, // 30
+      825178989697100000, // 31
+      859672904965600000, // 32
+      894409095191000000, // 33
+      929380216424000000, // 34
+      964579356905500000, // 35
+      1000000000000000000 // 36
+    ];
   }
 
   function depositByMonths(uint256 amount, uint256 months, address receiver) external {
@@ -144,7 +145,7 @@ contract SharesTimeLock is Ownable() {
       _msgSender() == receiver || whitelisted[_msgSender()],
       "Only whitelised address can deposit to another address"
     );
-    uint32 duration = uint32( months.mul(AVG_SECONDS_MONTH) );
+    uint32 duration = uint32( months.mul(secondsPerMonth()) );
     deposit(amount, duration, receiver);
   }
 
@@ -154,20 +155,18 @@ contract SharesTimeLock is Ownable() {
     uint256 multiplier = getRewardsMultiplier(duration);
     uint256 rewardShares = amount.mul(multiplier) / 1e18;
     rewardsToken.mint(receiver, rewardShares);
-    locks.push(Lock({
+    locksOf[receiver].push(Lock({
       amount: amount,
       lockedAt: uint32(block.timestamp),
-      lockDuration: duration,
-      owner: receiver
+      lockDuration: duration
     }));
     emit Deposited(amount, duration, receiver);
   }
 
   function withdraw(uint256 lockId) external {
-    Lock memory lock = locks[lockId];
-    require(_msgSender() == lock.owner, "!owner");
+    Lock memory lock = locksOf[_msgSender()][lockId];
     require(block.timestamp > lock.lockedAt + lock.lockDuration, "lock not expired");
-    delete locks[lockId];
+    delete locksOf[_msgSender()][lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
     uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
     rewardsToken.burn(_msgSender(), rewardShares);
@@ -177,45 +176,49 @@ contract SharesTimeLock is Ownable() {
   }
 
   function boostToMax(uint256 lockId) external {
-    Lock memory lock = locks[lockId];
-    require(_msgSender() == lock.owner, "!owner");
+    Lock memory lock = locksOf[_msgSender()][lockId];
 
-    delete locks[lockId];
+    delete locksOf[_msgSender()][lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
     uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
-    require(rewardsToken.balanceOf(lock.owner) >= rewardShares, "boostToMax: Wrong shares number");
+    require(rewardsToken.balanceOf(_msgSender()) >= rewardShares, "boostToMax: Wrong shares number");
 
     uint256 newMultiplier = getRewardsMultiplier(maxLockDuration);
     uint256 newRewardShares = lock.amount.mul(newMultiplier) / 1e18;
     rewardsToken.mint(_msgSender(), newRewardShares.sub(rewardShares));
-    locks.push(Lock({
+    locksOf[_msgSender()].push(Lock({
       amount: lock.amount,
       lockedAt: uint32(block.timestamp),
-      lockDuration: maxLockDuration,
-      owner: _msgSender()
+      lockDuration: maxLockDuration
     }));
 
     emit BoostedToMax(lock.amount, _msgSender());
   }
 
   // Eject expired locks
-  function eject(uint256[] memory lockIds) external {
-    
+  function eject(address[] memory lockAccounts, uint256[] memory lockIds) external {
+    require(lockAccounts.length == lockIds.length, "Array length mismatch");
+  
     for(uint256 i = 0; i < lockIds.length; i ++) {
-      Lock memory lock = locks[lockIds[i]];
+      //skip if lockId is invalid
+      if(locksOf[lockAccounts[i]].length - 1 < lockIds[i]) {
+        continue;
+      }
+
+      Lock memory lock = locksOf[lockAccounts[i]][lockIds[i]];
       //skip if lock not expired or locked amount is zero
       if(lock.lockedAt + lock.lockDuration > block.timestamp || lock.amount == 0) {
         continue;
       }
 
-      delete locks[lockIds[i]];
+      delete locksOf[lockAccounts[i]][lockIds[i]];
       uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
       uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
-      rewardsToken.burn(lock.owner, rewardShares);
+      rewardsToken.burn(lockAccounts[i], rewardShares);
 
-      depositToken.safeTransfer(lock.owner, lock.amount);
+      depositToken.safeTransfer(lockAccounts[i], lock.amount);
 
-      emit Ejected(lock.amount, lock.owner);
+      emit Ejected(lock.amount, lockAccounts[i]);
     }
   }
 

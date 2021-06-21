@@ -109,15 +109,15 @@ describe('One account operations', () => {
         const timestamp = await latest();
         await setNextTimestamp(timestamp + duration.months(6) + duration.hours(1));
 
-        expect(await timeLock.eject([1]))
+        expect(await timeLock.eject([wallet1.address], [0]))
             .to.emit(timeLock, "Ejected")
             .withArgs(toBigNumber(10), wallet1.address)
 
         expect(await depositToken.balanceOf(timeLock.address)).to.eq(toBigNumber(10));
         expect(await depositToken.balanceOf(wallet1.address)).to.eq(toBigNumber(10));
 
-        expect(await timeLock.locks(1)).to.deep.eq([
-            constants.Zero, 0, 0, constants.AddressZero
+        expect(await timeLock.locksOf(wallet1.address, 0)).to.deep.eq([
+            constants.Zero, 0, 0
         ]);
 
         await rewardsToken.setParticipationMerkleRoot(merkleTree.getRoot());
@@ -137,15 +137,15 @@ describe('One account operations', () => {
 
         await setNextTimestamp(timestamp + duration.months(6) + duration.hours(1));
 
-        expect(await timeLock.eject([0]))
+        expect(await timeLock.eject([wallet1.address], [0]))
             .to.emit(timeLock, "Ejected")
             .withArgs(toBigNumber(10), wallet1.address)
         
         expect(await depositToken.balanceOf(timeLock.address)).to.eq(0);
         expect(await depositToken.balanceOf(wallet1.address)).to.eq(toBigNumber(10));
 
-        expect(await timeLock.locks(0)).to.deep.eq([
-            constants.Zero, 0, 0, constants.AddressZero
+        expect(await timeLock.locksOf(wallet1.address, 0)).to.deep.eq([
+            constants.Zero, 0, 0
         ]);
     });
 });
@@ -296,11 +296,11 @@ describe('Multiple accounts operations', () => {
         const timestamp = await latest();
         await setNextTimestamp(timestamp + duration.months(6) + duration.hours(1));
 
-        expect(await timeLock.eject([1]))
+        expect(await timeLock.eject([wallet1.address], [0]))
             .to.emit(timeLock, "Ejected")
             .withArgs(toBigNumber(10), wallet1.address)
         
-        expect(await timeLock.eject([4]))
+        expect(await timeLock.eject([wallet4.address], [0]))
             .to.emit(timeLock, "Ejected")
             .withArgs(toBigNumber(10), wallet4.address)
 
@@ -309,12 +309,12 @@ describe('Multiple accounts operations', () => {
         expect(await depositToken.balanceOf(wallet1.address)).to.eq(toBigNumber(10));
         expect(await depositToken.balanceOf(wallet4.address)).to.eq(toBigNumber(10));
 
-        expect(await timeLock.locks(1)).to.deep.eq([
-            constants.Zero, 0, 0, constants.AddressZero
+        expect(await timeLock.locksOf(wallet1.address, 0)).to.deep.eq([
+            constants.Zero, 0, 0
         ]);
 
-        expect(await timeLock.locks(4)).to.deep.eq([
-            constants.Zero, 0, 0, constants.AddressZero
+        expect(await timeLock.locksOf(wallet4.address, 0)).to.deep.eq([
+            constants.Zero, 0, 0
         ]);
 
         await rewardsToken.setParticipationMerkleRoot(merkleTree.getRoot());
@@ -339,11 +339,11 @@ describe('Multiple accounts operations', () => {
 
         await setNextTimestamp(timestamp + duration.months(6) + duration.hours(1));
 
-        expect(await timeLock.eject([1]))
+        expect(await timeLock.eject([wallet1.address], [0]))
             .to.emit(timeLock, "Ejected")
             .withArgs(toBigNumber(10), wallet1.address)
         
-        expect(await timeLock.eject([4]))
+        expect(await timeLock.eject([wallet4.address], [0]))
             .to.emit(timeLock, "Ejected")
             .withArgs(toBigNumber(10), wallet4.address)
 
@@ -352,12 +352,12 @@ describe('Multiple accounts operations', () => {
         expect(await depositToken.balanceOf(wallet1.address)).to.eq(toBigNumber(10));
         expect(await depositToken.balanceOf(wallet4.address)).to.eq(toBigNumber(10));
 
-        expect(await timeLock.locks(1)).to.deep.eq([
-            constants.Zero, 0, 0, constants.AddressZero
+        expect(await timeLock.locksOf(wallet1.address, 0)).to.deep.eq([
+            constants.Zero, 0, 0
         ]);
 
-        expect(await timeLock.locks(4)).to.deep.eq([
-            constants.Zero, 0, 0, constants.AddressZero
+        expect(await timeLock.locksOf(wallet4.address, 0)).to.deep.eq([
+            constants.Zero, 0, 0
         ]);
     });
 });
