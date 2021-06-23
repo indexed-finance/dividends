@@ -55,7 +55,7 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     _burn(from, amount);
   }
 
-  function claimFor(address account, bytes32[] memory proof) public participationNeeded {
+  function claimFor(address account, bytes32[] memory proof) public {
     bytes32 leaf = keccak256(abi.encodePacked(account, uint256(ParticipationType.YES)));
 
     require(MerkleProof.verify(proof, participationMerkleRoot, leaf), "claimFor: Invalid merkle proof");
@@ -70,7 +70,7 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
     claimFor(_msgSender(), proof);
   }
 
-  function redistribute(address[] calldata accounts, bytes32[][] calldata proofs) external participationNeeded {
+  function redistribute(address[] calldata accounts, bytes32[][] calldata proofs) external {
     require(accounts.length == proofs.length, "redistribute: Array length mismatch");
 
     uint256 totalRedistributed = 0;
@@ -86,14 +86,9 @@ contract ERC20NonTransferableRewardsOwned is ERC20NonTransferableRewards, Ownabl
       totalRedistributed += _prepareCollect(accounts[i]);
     }
 
-    _distributeRewards(totalRedistributed);
-  }
+    require(totalRedistributed > 0, "redistribute: Nothing to redistribute");
 
-  function redistributeDust() external onlyMaintainer {
-    uint256 balance = IERC20(token).balanceOf(address(this));
-    require(balance > 0, "Contract balance is zero");
-    
-    _distributeRewards(balance);
+    _distributeRewards(totalRedistributed);
   }
 
   function distributeRewards(uint256 amount) external {

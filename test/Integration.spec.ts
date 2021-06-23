@@ -123,7 +123,7 @@ describe('One account operations', () => {
         await rewardsToken.setParticipationMerkleRoot(merkleTree.getRoot());
         await rewardsToken.distributeRewards(toBigNumber(10));
 
-        await rewardsToken.redistribute([wallet1.address], [merkleTree.getProof(leafs[1].leaf)]);
+        await expect(rewardsToken.redistribute([wallet1.address], [merkleTree.getProof(leafs[1].leaf)])).to.be.revertedWith("redistribute: Nothing to redistribute");
 
         expect(await rewardsToken.withdrawableRewardsOf(wallet1.address)).to.eq(0);
     });
@@ -320,7 +320,7 @@ describe('Multiple accounts operations', () => {
         await rewardsToken.setParticipationMerkleRoot(merkleTree.getRoot());
         await rewardsToken.distributeRewards(toBigNumber(10));
 
-        await rewardsToken.redistribute([wallet1.address, wallet4.address], [merkleTree.getProof(leafs[1].leaf), merkleTree.getProof(leafs[4].leaf)]);
+        await expect(rewardsToken.redistribute([wallet1.address, wallet4.address], [merkleTree.getProof(leafs[1].leaf), merkleTree.getProof(leafs[4].leaf)])).to.be.revertedWith("redistribute: Nothing to redistribute");
 
         expect(await rewardsToken.withdrawableRewardsOf(wallet1.address)).to.eq(0);
         expect(await rewardsToken.withdrawableRewardsOf(wallet4.address)).to.eq(0);

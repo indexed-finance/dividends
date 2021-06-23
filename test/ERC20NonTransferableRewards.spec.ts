@@ -292,9 +292,9 @@ describe('ERC20NonTransferableRewardBearing', () => {
         .to.be.revertedWith("redistribute: Array length mismatch");
     })
 
-    it('Should revert if participationMerkleRoot is not set', async () => {
+    it('Should revert if there is nothing to redistribute', async () => {
       await expect(erc20.redistribute([], []))
-        .to.be.revertedWith("participationNeeded: merkle root not set")
+        .to.be.revertedWith("redistribute: Nothing to redistribute")
     })
 
     it('Should skip invalid proofs', async () => {
