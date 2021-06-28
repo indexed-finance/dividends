@@ -1,14 +1,55 @@
 [
     {
-        "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+        "address": "0xd18a54f89603Fe4301b29EF6a8ab11b9Ba24f139",
         "participation": 1
     },
     {
-        "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96046",
+        "address": "0xe89dEe662C94FfEE76d0942f4a4bAD27cC076dd2",
+        "participation": 0
+    },
+
+    {
+        "address": "0xCB388d0f190496109316e0d5526DA46D72E52F61",
         "participation": 1
     },
     {
-        "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96047",
+        "address": "0xc96265c36F6D77747f9c259946a1eF55FcE946b7",
+        "participation": 0
+    },
+
+    {
+        "address": "0x16B89DF3B761D83D772376d3D18AeE63f7D74Dfd",
+        "participation": 1
+    },
+    {
+        "address": "0x51BB5E83a7e686e39ec0d6FCFe62A0402f7Ef8f6",
+        "participation": 0
+    },
+
+    {
+        "address": "0x3d867dBbb7e5a448A6864DA063D9AB723Aec90c2",
+        "participation": 1
+    },
+    {
+        "address": "0x70E2402986807128Ff949579A8d444ec9465AEFf",
+        "participation": 0
+    },
+
+    {
+        "address": "0x1e17A75616cd74f5846B1b71622Aa8e10ea26Cc0",
+        "participation": 1
+    },
+    {
+        "address": "0x9B83fb36D0c865E0C8a539759f1F97146D748DAb",
+        "participation": 0
+    },
+
+    {
+        "address": "0x42556f667Dfc74704914F98d1e0c0aC4Ea2f492e",
+        "participation": 1
+    },
+    {
+        "address": "0x7884C447d5CD98e794c1A5c08e3107fbF29B2877",
         "participation": 0
     }
 ]
