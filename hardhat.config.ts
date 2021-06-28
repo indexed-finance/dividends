@@ -33,6 +33,11 @@ let networks = {
     }
   },
   mainnet: configureNetwork('mainnet', 1),
+  rinkebyAlchemy: {
+    url: `https://eth-rinkeby.alchemyapi.io/v2/82gaH21tArzd94dLFsWVHrsryismjKw-`,
+    chainId: 4,
+    accounts: [process.env.RINKEBY_PVT_KEY],
+  },
   kovan: configureNetwork('kovan', 42),
   rinkeby: configureNetwork('rinkeby', 4),
   goerli: configureNetwork('goerli', 5),

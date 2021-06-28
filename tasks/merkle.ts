@@ -3,6 +3,8 @@ import { writeFileSync } from "fs";
 
 
 import { createParticipationTree } from  "../utils";
+import {IERC20__factory} from "../typechain/factories/IERC20__factory";
+import { Signer } from "ethers/lib/ethers";
 
 task("generate-merkle-root")
     .addParam("input", "Path to json file") 
@@ -39,3 +41,38 @@ task("generate-proof")
         const proof = merkleTree.merkleTree.getProof(leaf.leaf);
         writeFileSync(process.cwd() + "/" + taskArgs.output, JSON.stringify(proof, null, 2));
 });
+
+task("generate-participation")
+    .addParam("output", "JSON file to output to")
+    .setAction(async(taskArgs, {ethers}) => {
+        const signer = (await ethers.getSigners())[0];
+
+        // get token holders
+        const tokenHolders = await getAccounts("0x250B5CC49658Dd9f9369a71d654e5DB3fc87e69C", signer);
+
+        // get all votes
+
+        // label all token holders who did vote active
+
+        // return generated leafs
+
+        console.log(tokenHolders);
+});
+
+async function getAccounts(tokenAddress: string, signer:Signer) {
+    const token = IERC20__factory.connect(tokenAddress, signer)
+    const accounts: any = {};
+    const filter = token.filters.Transfer(null, null, null);
+
+    // TODO fix hitting limits of alchemy/infura
+    const events = await token.queryFilter(filter, 0, "latest");
+
+    for (const event of events) {
+        if(event.args) {
+            accounts[event.args.from] = 1;
+            accounts[event.args.to] = 1;
+        }
+
+    }
+    return Object.keys(accounts);
+  }
