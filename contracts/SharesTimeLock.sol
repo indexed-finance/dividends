@@ -268,6 +268,12 @@ contract SharesTimeLock is Ownable() {
     }
 
     Lock memory lock = locksOf[account][lockId];
+
+    // if lock is already removed it cannot be ejected
+    if(lock.lockedAt == 0) {
+      return false;
+    }
+
     return lock.lockedAt + lock.lockDuration <= block.timestamp;
   }
 }
