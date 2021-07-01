@@ -144,17 +144,17 @@ task("deploy-staking-proxied-testing")
         // await timeLock.setSecondsPerMonth(taskArgs.secondsPerMonth);
         await timeLock.setSecondsPerMonth(taskArgs.secondsPerMonth, {gasLimit: 1000000});
         
-        console.log("fetching depositToken");
-        const depositToken = await timeLock.depositToken();
-        console.log(depositToken);
+        // console.log("fetching depositToken");
+        // const depositToken = await timeLock.depositToken();
+        // console.log(depositToken);
         
         console.log("transfering ownership of dToken");
         await dToken.transferOwnership(timeLock.address, {gasLimit: 1000000});
 
 
-        console.log("getting staking data");
-        const data = await timeLock.getStakingData(signer.address);
-        console.log(data);
+        // console.log("getting staking data");
+        // const data = await timeLock.getStakingData(signer.address);
+        // console.log(data);
         
 
         console.table(contracts);

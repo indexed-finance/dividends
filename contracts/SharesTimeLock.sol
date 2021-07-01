@@ -263,7 +263,7 @@ contract SharesTimeLock is Ownable() {
   function canEject(address account, uint256 lockId) public view returns(bool) {
 
     //cannot eject non existing locks
-    if(locksOf[account].length - 1 > lockId) {
+    if(locksOf[account].length - 1 < lockId) {
       return false;
     }
 
