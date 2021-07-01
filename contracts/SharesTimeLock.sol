@@ -36,10 +36,10 @@ contract SharesTimeLock is Ownable() {
 
   event MinLockAmountChanged(uint256 newLockAmount);
   event WhitelistedChanged(address indexed user, bool indexed whitelisted);
-  event Deposited(uint256 amount, uint32 lockDuration, address indexed owner);
-  event Withdrawn(uint256 amount, address indexed owner);
-  event Ejected(uint256 amount, address indexed owner);
-  event BoostedToMax(uint256 amount, address indexed owner);
+  event Deposited(uint256 indexed lockId, uint256 amount, uint32 lockDuration, address indexed owner);
+  event Withdrawn(uint256 indexed lockId, uint256 amount, address indexed owner);
+  event Ejected(uint256 indexed lockId, uint256 amount, address indexed owner);
+  event BoostedToMax(uint256 indexed lockId, uint256 amount, address indexed owner);
 
   struct Lock {
     uint256 amount;
@@ -49,8 +49,8 @@ contract SharesTimeLock is Ownable() {
 
   struct StakingData {
     uint256 totalStaked;
-    uint256 rewardTokenTotalSupply;
-    uint256 accountRewardTokenBalance;
+    uint256 veTokenTotalSupply;
+    uint256 accountVeTokenBalance;
     uint256 accountWithdrawableRewards;
     uint256 accountWithdrawnRewards;
     uint256 accountDepositTokenBalance;
@@ -160,7 +160,7 @@ contract SharesTimeLock is Ownable() {
       lockedAt: uint32(block.timestamp),
       lockDuration: duration
     }));
-    emit Deposited(amount, duration, receiver);
+    emit Deposited(locksOf[receiver].length - 1, amount, duration, receiver);
   }
 
   function withdraw(uint256 lockId) external {
@@ -172,7 +172,7 @@ contract SharesTimeLock is Ownable() {
     rewardsToken.burn(_msgSender(), rewardShares);
       
     depositToken.safeTransfer(_msgSender(), lock.amount);
-    emit Withdrawn(lock.amount, _msgSender());
+    emit Withdrawn(lockId, lock.amount, _msgSender());
   }
 
   function boostToMax(uint256 lockId) external {
@@ -192,7 +192,7 @@ contract SharesTimeLock is Ownable() {
       lockDuration: maxLockDuration
     }));
 
-    emit BoostedToMax(lock.amount, _msgSender());
+    emit BoostedToMax(lockId, lock.amount, _msgSender());
   }
 
   // Eject expired locks
@@ -218,7 +218,7 @@ contract SharesTimeLock is Ownable() {
 
       depositToken.safeTransfer(lockAccounts[i], lock.amount);
 
-      emit Ejected(lock.amount, lockAccounts[i]);
+      emit Ejected(lockIds[i], lock.amount, lockAccounts[i]);
     }
   }
 
@@ -241,8 +241,8 @@ contract SharesTimeLock is Ownable() {
 
   function getStakingData(address account) external view returns (StakingData memory data) {
     data.totalStaked = IERC20(depositToken).balanceOf(address(this));
-    data.rewardTokenTotalSupply = rewardsToken.totalSupply();
-    data.accountRewardTokenBalance = rewardsToken.balanceOf(account);
+    data.veTokenTotalSupply = rewardsToken.totalSupply();
+    data.accountVeTokenBalance = rewardsToken.balanceOf(account);
     data.accountWithdrawableRewards = rewardsToken.withdrawableRewardsOf(account);
     data.accountWithdrawnRewards = rewardsToken.withdrawnRewardsOf(account);
     data.accountDepositTokenBalance = IERC20(depositToken).balanceOf(account);
