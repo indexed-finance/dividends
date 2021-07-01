@@ -3,7 +3,7 @@ import { writeFileSync } from "fs";
 
 
 import { createParticipationTree } from  "../utils";
-import {IERC20__factory} from "../typechain/factories/IERC20__factory";
+import {IERC20Upgradeable__factory as IERC20__factory} from "../typechain/factories/IERC20Upgradeable__factory";
 import { Signer } from "ethers/lib/ethers";
 
 task("generate-merkle-root")
