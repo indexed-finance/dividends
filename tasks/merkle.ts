@@ -1,10 +1,13 @@
 import { task } from "hardhat/config";
 import { writeFileSync } from "fs";
+import fetch from "node-fetch";
 
 
 import { createParticipationTree } from  "../utils";
 import {IERC20Upgradeable__factory as IERC20__factory} from "../typechain/factories/IERC20Upgradeable__factory";
 import { Signer } from "ethers/lib/ethers";
+import { createDecipher } from "node:crypto";
+import { fstat } from "node:fs";
 
 task("generate-merkle-root")
     .addParam("input", "Path to json file") 
@@ -44,35 +47,96 @@ task("generate-proof")
 
 task("generate-participation")
     .addParam("output", "JSON file to output to")
+    .addParam("inactiveTime", "Older than this timestamp will be considered inactive")
     .setAction(async(taskArgs, {ethers}) => {
         const signer = (await ethers.getSigners())[0];
 
         // get token holders
-        const tokenHolders = await getAccounts("0x250B5CC49658Dd9f9369a71d654e5DB3fc87e69C", signer);
+        // hardcoded at DOUGH deploy block
+        const tokenHolders = await getAccounts("0xad32A8e6220741182940c5aBF610bDE99E737b2D", signer, 10840239);
 
-        // get all votes
+        // TODO consider paginating if there is a large number of votes
+        const query = `{
+            votes (
+              first: 1000
+              where: {
+                space: "piedao"
+              }
+            ) {
+              id
+              voter
+              created
+              proposal {
+                id
+              }
+              choice
+              space {
+                id
+              }
+            }
+          }`
 
-        // label all token holders who did vote active
+        const result = (await (await fetch('https://hub.snapshot.page/graphql', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({query: query})
+        })).json()).data.votes;
 
-        // return generated leafs
+        for (const vote of result) {
+            if(vote.created > taskArgs.inactiveTime) {
+                // @ts-ignore
+                tokenHolders[vote.voter] = {
+                    participation: 1
+                }
+            }
+        }
 
-        console.log(tokenHolders);
+        const participationElements = [];
+
+        for (const address in tokenHolders) {
+            if (Object.prototype.hasOwnProperty.call(tokenHolders, address)) {
+                participationElements.push({
+                    address: address,
+                    participation: tokenHolders[address].participation
+                })
+                
+            }
+        }
+
+        writeFileSync(process.cwd() + "/" + taskArgs.output, JSON.stringify(participationElements, null, 2));
 });
 
-async function getAccounts(tokenAddress: string, signer:Signer) {
+async function getAccounts(tokenAddress: string, signer:Signer, fromBlock: number) {
     const token = IERC20__factory.connect(tokenAddress, signer)
     const accounts: any = {};
     const filter = token.filters.Transfer(null, null, null);
 
-    // TODO fix hitting limits of alchemy/infura
-    const events = await token.queryFilter(filter, 0, "latest");
+    const BATCH_SIZE = 1000;
 
-    for (const event of events) {
-        if(event.args) {
-            accounts[event.args.from] = 1;
-            accounts[event.args.to] = 1;
+
+    let currentFromBlock = fromBlock;
+    const currentBlock = await signer.provider?.getBlockNumber();
+
+    while(true) {
+        // TODO fix hitting limits of alchemy/infura
+        console.log(`fetching ${currentFromBlock} to ${currentFromBlock + BATCH_SIZE}`)
+        const events = await token.queryFilter(filter, currentFromBlock, currentFromBlock + BATCH_SIZE);
+        for (const event of events) {
+            if(event.args) {
+                console.log("hmm");
+                accounts[event.args.from] = {participation: 0};
+                accounts[event.args.to] = {participation: 0};
+            }
         }
 
+        currentFromBlock += BATCH_SIZE;
+        if(!currentBlock || currentFromBlock > currentBlock) {
+            break;
+        }
     }
-    return Object.keys(accounts);
+
+    return accounts;
   }
