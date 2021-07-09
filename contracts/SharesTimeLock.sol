@@ -5,8 +5,6 @@ pragma abicoder v2;
 import {OwnableUpgradeable as Ownable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./ERC20NonTransferableRewardsOwned.sol";
 import "./libraries/LowGasSafeMath.sol";
-import "hardhat/console.sol";
-
 
 contract SharesTimeLock is Ownable() {
   using LowGasSafeMath for uint256;
@@ -24,6 +22,8 @@ contract SharesTimeLock is Ownable() {
   uint256 public minLockAmount;
 
   uint256 private constant AVG_SECONDS_MONTH = 2628000;
+
+  bool public emergencyUnlockTriggered;
 
   /*
     Mapping of coefficient for the staking curve
@@ -151,6 +151,7 @@ contract SharesTimeLock is Ownable() {
 
   function deposit(uint256 amount, uint32 duration, address receiver) internal {
     require(amount >= minLockAmount, "Deposit: amount too small");
+    require(!emergencyUnlockTriggered, "Deposit: deposits locked");
     depositToken.safeTransferFrom(_msgSender(), address(this), amount);
     uint256 multiplier = getRewardsMultiplier(duration);
     uint256 rewardShares = amount.mul(multiplier) / 1e18;
@@ -165,19 +166,21 @@ contract SharesTimeLock is Ownable() {
 
   function withdraw(uint256 lockId) external {
     Lock memory lock = locksOf[_msgSender()][lockId];
-    require(block.timestamp > lock.lockedAt + lock.lockDuration, "lock not expired");
+    uint256 unlockAt = lock.lockedAt + lock.lockDuration;
+    require(block.timestamp > unlockAt || emergencyUnlockTriggered, "Withdraw: lock not expired and timelock not in emergency mode");
     delete locksOf[_msgSender()][lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
     uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
     rewardsToken.burn(_msgSender(), rewardShares);
-      
+    
     depositToken.safeTransfer(_msgSender(), lock.amount);
     emit Withdrawn(lockId, lock.amount, _msgSender());
   }
 
   function boostToMax(uint256 lockId) external {
+    require(!emergencyUnlockTriggered, "BoostToMax: emergency unlock triggered");
+    
     Lock memory lock = locksOf[_msgSender()][lockId];
-
     delete locksOf[_msgSender()][lockId];
     uint256 multiplier = getRewardsMultiplier(lock.lockDuration);
     uint256 rewardShares = lock.amount.mul(multiplier) / 1e18;
@@ -233,6 +236,11 @@ contract SharesTimeLock is Ownable() {
   function setWhitelisted(address user, bool isWhitelisted) external onlyOwner {
     whitelisted[user] = isWhitelisted;
     emit WhitelistedChanged(user, isWhitelisted);
+  }
+
+  function triggerEmergencyUnlock() external onlyOwner {
+    require(!emergencyUnlockTriggered, "TriggerEmergencyUnlock: already triggered");
+    emergencyUnlockTriggered = true;
   }
 
   /**

@@ -468,4 +468,43 @@ describe('SharesTimeLock', () => {
     });
   });
   
+  describe.only("triggerEmergencyUnlock", async() => {
+    it("Should change emergencyUnlockTriggered value", async() => {
+      await timeLock.triggerEmergencyUnlock();
+      expect(await timeLock.emergencyUnlockTriggered()).to.eq(true);
+    });
+
+    it("Should revert when called twice", async() => {
+      await timeLock.triggerEmergencyUnlock();
+      await expect(timeLock.triggerEmergencyUnlock()).to.be.revertedWith("TriggerEmergencyUnlock: already triggered");
+    });
+
+    it("Should revert deposit when triggered", async () => {
+      await timeLock.triggerEmergencyUnlock();
+      await expect(timeLock.depositByMonths(toBigNumber(1), 6, wallet.address))
+        .to.be.revertedWith("Deposit: deposits locked");
+    });
+
+    it("Should revert boostToMax when triggered", async () => {
+      await timeLock.depositByMonths(toBigNumber(1), 6, wallet.address)
+      await timeLock.triggerEmergencyUnlock();
+      await expect(timeLock.boostToMax(toBigNumber(0)))
+        .to.be.revertedWith("BoostToMax: emergency unlock triggered");
+    });
+
+    it("User can withdraw before expiration when triggered", async () => {
+      const expected = BigNumber.from(1).mul(BigNumber.from(curveRatio[6].toString()));
+
+      await timeLock.depositByMonths(toBigNumber(1), 6, wallet.address)
+      await timeLock.triggerEmergencyUnlock();
+
+      await expect(timeLock.withdraw(0))
+        .to.emit(timeLock, 'Withdrawn')
+        .withArgs(toBigNumber(0), toBigNumber(1), wallet.address)
+
+      await expect(timeLock.withdraw(0))
+        .to.emit(rewardsToken, 'Transfer')
+        .withArgs(wallet.address, constants.AddressZero, expected.toString())
+    });
+  });
 })
