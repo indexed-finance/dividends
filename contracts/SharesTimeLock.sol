@@ -156,6 +156,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
   function triggerEmergencyUnlock() external override onlyOwner {
     require(!emergencyUnlockTriggered, "already triggered");
     emergencyUnlockTriggered = true;
+    emit EmergencyUnlockTriggered();
   }
 
   /**
@@ -213,6 +214,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
       lockId,
       msg.sender,
       amount,
+      dividendShares,
       duration
     );
   }
@@ -224,27 +226,41 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
    * caller's account.
    * This can only be executed by the lock owner.
    */
-  function withdraw(uint256 lockId) external override {
-    Lock memory lock = locks[lockId];
+  function destroyLock(uint256 lockId) external override {
+    withdraw(lockId, locks[lockId].amount);
+  }
+
+  function withdraw(uint256 lockId, uint256 amount) public override {
+    Lock storage lock = locks[lockId];
     require(msg.sender == lock.owner, "!owner");
-    delete locks[lockId];
-    (uint256 dividendShares, uint256 earlyWithdrawalFee) = getWithdrawalParameters(
-      lock.amount,
+    lock.amount = lock.amount.sub(amount, "insufficient locked tokens");
+    (uint256 owed, uint256 dividendShares) = _withdraw(lock, amount);
+    if (lock.amount == 0) {
+      delete locks[lockId];
+      emit LockDestroyed(lockId, msg.sender, owed, dividendShares);
+    } else {
+      emit PartialWithdrawal(lockId, msg.sender, owed, dividendShares);
+    }
+  }
+
+  function _withdraw(Lock memory lock, uint256 amount) internal returns (uint256 owed, uint256 dividendShares) {
+    uint256 earlyWithdrawalFee;
+    (dividendShares, earlyWithdrawalFee) = getWithdrawalParameters(
+      amount,
       uint256(lock.lockedAt),
       uint256(lock.lockDuration)
     );
-    uint256 owed = lock.amount.sub(earlyWithdrawalFee);
+    owed = amount.sub(earlyWithdrawalFee);
 
     IERC20DividendsOwned(dividendsToken).burn(msg.sender, dividendShares);
     if (earlyWithdrawalFee > 0) {
-      _withdrawFromModule(msg.sender, address(this), lock.amount);
+      _withdrawFromModule(msg.sender, address(this), amount);
       depositToken.safeTransfer(msg.sender, owed);
       pendingFees = pendingFees.add(earlyWithdrawalFee);
       emit FeesReceived(earlyWithdrawalFee);
     } else {
-      _withdrawFromModule(msg.sender, msg.sender, lock.amount);
+      _withdrawFromModule(msg.sender, msg.sender, amount);
     }
-    emit LockDestroyed(lockId, msg.sender, owed);
   }
 
   /**

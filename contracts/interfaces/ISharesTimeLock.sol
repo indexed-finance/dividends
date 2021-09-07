@@ -8,13 +8,22 @@ interface ISharesTimeLock is IDelegationModule {
     uint256 indexed lockId,
     address indexed account,
     uint256 amountLocked,
+    uint256 dividendShares,
     uint32 duration
   );
 
   event LockDestroyed(
     uint256 indexed lockId,
     address indexed account,
-    uint256 amount
+    uint256 amount,
+    uint256 dividendShares
+  );
+
+  event PartialWithdrawal(
+    uint256 indexed lockId,
+    address indexed account,
+    uint256 amount,
+    uint256 dividendShares
   );
 
   event MinimumDepositSet(uint256 minimumDeposit);
@@ -22,6 +31,8 @@ interface ISharesTimeLock is IDelegationModule {
   event FeesReceived(uint256 amount);
 
   event FeesDistributed(uint256 amount);
+
+  event EmergencyUnlockTriggered();
 
   /**
    * @dev Struct for token locks.
@@ -80,5 +91,7 @@ interface ISharesTimeLock is IDelegationModule {
 
   function delegate(address delegatee) external;
 
-  function withdraw(uint256 lockId) external;
+  function destroyLock(uint256 lockId) external;
+
+  function withdraw(uint256 lockId, uint256 amount) external;
 }

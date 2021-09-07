@@ -178,7 +178,7 @@ describe('SharesTimelock', () => {
     it('Should push to locks', async () => {
       await expect(timeLock.deposit(toBigNumber(5), minLockDuration))
         .to.emit(timeLock, 'LockCreated')
-        .withArgs(0, wallet.address, toBigNumber(5), minLockDuration)
+        .withArgs(0, wallet.address, toBigNumber(5), toBigNumber(5), minLockDuration)
       const timestamp = await latest()
       expect(await timeLock.locks(0)).to.deep.eq([
         toBigNumber(5),
@@ -307,30 +307,30 @@ describe('SharesTimelock', () => {
     })
   })
 
-  describe('withdraw()', () => {
+  describe('destroyLock()', () => {
     it('Should revert if lockId does not exist', async () => {
-      await expect(timeLock.withdraw(1)).to.be.reverted
+      await expect(timeLock.destroyLock(1)).to.be.reverted
     })
 
     it('Should revert if caller does not have all dividend tokens minted', async () => {
       await timeLock.deposit(toBigNumber(5), minLockDuration)
       await dividendsToken.transfer(wallet1.address, 1)
       await expect(
-        timeLock.withdraw(0)
+        timeLock.destroyLock(0)
       ).to.be.revertedWith('ERC20: burn amount exceeds balance')
     })
 
     it('Should revert if caller is not the owner', async () => {
       await timeLock.deposit(toBigNumber(5), minLockDuration)
       await expect(
-        timeLock.connect(wallet1).withdraw(0)
+        timeLock.connect(wallet1).destroyLock(0)
       ).to.be.revertedWith('!owner')
     })
 
     describe('When timelock has passed', () => {
       it('Should burn dividends token from caller', async () => {
         await timeLock.deposit(toBigNumber(5), minLockDuration)
-        await expect(timeLock.withdraw(0))
+        await expect(timeLock.destroyLock(0))
           .to.emit(dividendsToken, 'Transfer')
           .withArgs(wallet.address, constants.AddressZero, toBigNumber(5))
       })
@@ -340,14 +340,14 @@ describe('SharesTimelock', () => {
         await timeLock.deposit(toBigNumber(5), minLockDuration)
         await setNextTimestamp(timestamp + duration.days(100))
         const delegationModule = getContractAddress({ from: timeLock.address, nonce: 2 })
-        await expect(timeLock.withdraw(0))
+        await expect(timeLock.destroyLock(0))
           .to.emit(depositToken, 'Transfer')
           .withArgs(delegationModule, wallet.address, toBigNumber(5))
       })
   
       it('Should delete lock', async () => {
         await timeLock.deposit(toBigNumber(5), minLockDuration)
-        await timeLock.withdraw(0)
+        await timeLock.destroyLock(0)
         expect(await timeLock.locks(0)).to.deep.eq([
           constants.Zero, 0, 0, constants.AddressZero
         ])
@@ -359,7 +359,7 @@ describe('SharesTimelock', () => {
       describe('When emergency unlock has not been triggered', () => {
         it('Should burn dividends token from caller', async () => {
           await timeLock.deposit(toBigNumber(5), minLockDuration)
-          await expect(timeLock.withdraw(0))
+          await expect(timeLock.destroyLock(0))
             .to.emit(dividendsToken, 'Transfer')
             .withArgs(wallet.address, constants.AddressZero, toBigNumber(5))
         })
@@ -367,7 +367,7 @@ describe('SharesTimelock', () => {
         it('Should withdraw full deposit from sub-delegation to the timelock contract', async () => {
           await timeLock.deposit(toBigNumber(5), minLockDuration)
           const delegationModule = getContractAddress({ from: timeLock.address, nonce: 2 })
-          await expect(timeLock.withdraw(0))
+          await expect(timeLock.destroyLock(0))
             .to.emit(depositToken, 'Transfer')
             .withArgs(delegationModule, timeLock.address, toBigNumber(5))
         })
@@ -378,7 +378,7 @@ describe('SharesTimelock', () => {
           await setNextTimestamp(timestamp + (minLockDuration / 2))
           const earlyWithdrawalFee = toBigNumber(15, 16)
   
-          await expect(timeLock.withdraw(0))
+          await expect(timeLock.destroyLock(0))
             .to.emit(depositToken, 'Transfer')
             .withArgs(timeLock.address, wallet.address, toBigNumber(1).sub(earlyWithdrawalFee))
           expect(await depositToken.balanceOf(timeLock.address)).to.eq(earlyWithdrawalFee)
@@ -388,9 +388,9 @@ describe('SharesTimelock', () => {
           await timeLock.deposit(toBigNumber(1), minLockDuration)
           const timestamp = await latest()
           await setNextTimestamp(timestamp + (minLockDuration / 2))
-          await expect(timeLock.withdraw(0))
+          await expect(timeLock.destroyLock(0))
             .to.emit(timeLock, 'LockDestroyed')
-            .withArgs(0, wallet.address, toBigNumber(85, 16))
+            .withArgs(0, wallet.address, toBigNumber(85, 16), toBigNumber(1))
           expect(await timeLock.locks(0)).to.deep.eq([
             constants.Zero, 0, 0, constants.AddressZero
           ])
@@ -401,7 +401,7 @@ describe('SharesTimelock', () => {
           await timeLock.deposit(toBigNumber(1), minLockDuration)
           const timestamp = await latest()
           await setNextTimestamp(timestamp + (minLockDuration / 2))
-          await expect(timeLock.withdraw(0))
+          await expect(timeLock.destroyLock(0))
             .to.emit(timeLock, 'FeesReceived')
             .withArgs(toBigNumber(15, 16))
         })
@@ -415,7 +415,7 @@ describe('SharesTimelock', () => {
               .mul(minLockDuration - duration.days(1))
               .div(minLockDuration)
           )
-          await timeLock.withdraw(0)
+          await timeLock.destroyLock(0)
           expect(await timeLock.pendingFees()).to.eq(fee)
         })
       })
@@ -423,7 +423,7 @@ describe('SharesTimelock', () => {
         it('Should burn dividends token from caller', async () => {
           await timeLock.deposit(toBigNumber(5), minLockDuration)
           await timeLock.triggerEmergencyUnlock()
-          await expect(timeLock.withdraw(0))
+          await expect(timeLock.destroyLock(0))
             .to.emit(dividendsToken, 'Transfer')
             .withArgs(wallet.address, constants.AddressZero, toBigNumber(5))
         })
@@ -432,7 +432,7 @@ describe('SharesTimelock', () => {
           await timeLock.deposit(toBigNumber(5), minLockDuration)
           await timeLock.triggerEmergencyUnlock()
           const delegationModule = getContractAddress({ from: timeLock.address, nonce: 2 })
-          await expect(timeLock.withdraw(0))
+          await expect(timeLock.destroyLock(0))
             .to.emit(depositToken, 'Transfer')
             .withArgs(delegationModule, wallet.address, toBigNumber(5))
         })
@@ -440,9 +440,182 @@ describe('SharesTimelock', () => {
         it('Should delete lock', async () => {
           await timeLock.deposit(toBigNumber(1), minLockDuration)
           await timeLock.triggerEmergencyUnlock()
-          await expect(timeLock.withdraw(0))
+          await expect(timeLock.destroyLock(0))
             .to.emit(timeLock, 'LockDestroyed')
-            .withArgs(0, wallet.address, toBigNumber(1))
+            .withArgs(0, wallet.address, toBigNumber(1), toBigNumber(1))
+          expect(await timeLock.locks(0)).to.deep.eq([
+            constants.Zero, 0, 0, constants.AddressZero
+          ])
+          expect(await timeLock.getLocksLength()).to.eq(1)
+        })
+      })
+    })
+  })
+
+  describe('withdraw()', () => {
+    it('Should revert if lockId does not exist', async () => {
+      await expect(timeLock.withdraw(1, 0)).to.be.reverted
+    })
+
+    it('Should revert if caller does not have all dividend tokens minted', async () => {
+      await timeLock.deposit(toBigNumber(5), minLockDuration)
+      await dividendsToken.transfer(wallet1.address, 1)
+      await expect(
+        timeLock.withdraw(0, toBigNumber(5))
+      ).to.be.revertedWith('ERC20: burn amount exceeds balance')
+    })
+
+    it('Should revert if caller is not the owner', async () => {
+      await timeLock.deposit(toBigNumber(5), minLockDuration)
+      await expect(
+        timeLock.connect(wallet1).withdraw(0, 0)
+      ).to.be.revertedWith('!owner')
+    })
+
+    describe('When timelock has passed', () => {
+      it('Should burn dividends token from caller', async () => {
+        await timeLock.deposit(toBigNumber(5), minLockDuration)
+        const timestamp = await latest()
+        await setNextTimestamp(timestamp + duration.days(100))
+        await expect(timeLock.withdraw(0, toBigNumber(25, 17)))
+          .to.emit(dividendsToken, 'Transfer')
+          .withArgs(wallet.address, constants.AddressZero, toBigNumber(25, 17))
+      })
+  
+      it('Should withdraw amount requested from sub-delegation module to the caller', async () => {
+        await timeLock.deposit(toBigNumber(5), minLockDuration)
+        const timestamp = await latest()
+        await setNextTimestamp(timestamp + duration.days(100))
+        const delegationModule = getContractAddress({ from: timeLock.address, nonce: 2 })
+        await expect(timeLock.withdraw(0, toBigNumber(25, 17)))
+          .to.emit(depositToken, 'Transfer')
+          .withArgs(delegationModule, wallet.address, toBigNumber(25, 17))
+      })
+  
+      it('Should update lock', async () => {
+        await timeLock.deposit(toBigNumber(5), minLockDuration)
+        const timestamp = await latest()
+        await setNextTimestamp(timestamp + duration.days(100))
+        await timeLock.withdraw(0, toBigNumber(25, 17))
+        expect(await timeLock.locks(0)).to.deep.eq([
+          toBigNumber(25, 17), timestamp, minLockDuration, wallet.address
+        ])
+      })
+
+      it('Should delete lock if full amount withdrawn', async () => {
+        await timeLock.deposit(toBigNumber(5), minLockDuration)
+        const timestamp = await latest()
+        await setNextTimestamp(timestamp + duration.days(100))
+        await timeLock.withdraw(0, toBigNumber(25, 17))
+        await expect(timeLock.withdraw(0, toBigNumber(25, 17)))
+          .to.emit(timeLock, 'LockDestroyed')
+          .withArgs(0, wallet.address, toBigNumber(25, 17), toBigNumber(25, 17))
+        expect(await timeLock.locks(0)).to.deep.eq([
+          constants.Zero, 0, 0, constants.AddressZero
+        ])
+        expect(await timeLock.getLocksLength()).to.eq(1)
+      })
+    })
+
+    describe('When timelock has not passed', () => {
+      describe('When emergency unlock has not been triggered', () => {
+        it('Should burn dividends token from caller', async () => {
+          await timeLock.deposit(toBigNumber(25, 17), minLockDuration)
+          await expect(timeLock.withdraw(0, toBigNumber(25, 17)))
+            .to.emit(dividendsToken, 'Transfer')
+            .withArgs(wallet.address, constants.AddressZero, toBigNumber(25, 17))
+        })
+    
+        it('Should withdraw requested amount from sub-delegation to the timelock contract', async () => {
+          await timeLock.deposit(toBigNumber(5), minLockDuration)
+          const delegationModule = getContractAddress({ from: timeLock.address, nonce: 2 })
+          await expect(timeLock.withdraw(0, toBigNumber(25, 17)))
+            .to.emit(depositToken, 'Transfer')
+            .withArgs(delegationModule, timeLock.address, toBigNumber(25, 17))
+        })
+    
+        it('Should transfer deposit less fees to the caller', async () => {
+          await timeLock.deposit(toBigNumber(1), minLockDuration)
+          const timestamp = await latest()
+          await setNextTimestamp(timestamp + (minLockDuration / 2))
+          const earlyWithdrawalFee = toBigNumber(75, 15)
+  
+          await expect(timeLock.withdraw(0, toBigNumber(5, 17)))
+            .to.emit(depositToken, 'Transfer')
+            .withArgs(timeLock.address, wallet.address, toBigNumber(5, 17).sub(earlyWithdrawalFee))
+          expect(await depositToken.balanceOf(timeLock.address)).to.eq(earlyWithdrawalFee)
+        })
+    
+        it('Should delete lock if full amount withdrawn', async () => {
+          await timeLock.deposit(toBigNumber(1), minLockDuration)
+          const timestamp = await latest()
+          await setNextTimestamp(timestamp + (minLockDuration / 2))
+          await expect(timeLock.withdraw(0, toBigNumber(1)))
+            .to.emit(timeLock, 'LockDestroyed')
+            .withArgs(0, wallet.address, toBigNumber(85, 16), toBigNumber(1))
+          expect(await timeLock.locks(0)).to.deep.eq([
+            constants.Zero, 0, 0, constants.AddressZero
+          ])
+          expect(await timeLock.getLocksLength()).to.eq(1)
+        })
+    
+        it('Should emit FeesReceived', async () => {
+          await timeLock.deposit(toBigNumber(1), minLockDuration)
+          const timestamp = await latest()
+          await setNextTimestamp(timestamp + (minLockDuration / 2))
+          const earlyWithdrawalFee = toBigNumber(75, 15)
+          await expect(timeLock.withdraw(0, toBigNumber(5, 17)))
+            .to.emit(timeLock, 'FeesReceived')
+            .withArgs(earlyWithdrawalFee)
+        })
+    
+        it('Should emit PartialWithdrawal', async () => {
+          await timeLock.deposit(toBigNumber(1), minLockDuration)
+          const timestamp = await latest()
+          await setNextTimestamp(timestamp + (minLockDuration / 2))
+          await expect(timeLock.withdraw(0, toBigNumber(5, 17)))
+            .to.emit(timeLock, 'PartialWithdrawal')
+            .withArgs(0, wallet.address, toBigNumber(425, 15), toBigNumber(5, 17))
+        })
+  
+        it('Should add fee to pendingFees', async () => {
+          await timeLock.deposit(toBigNumber(1), minLockDuration)
+          const timestamp = await latest()
+          await setNextTimestamp(timestamp + duration.days(1))
+          const fee = minEarlyWithdrawalFee.add(
+            baseEarlyWithdrawalFee
+              .mul(minLockDuration - duration.days(1))
+              .div(minLockDuration)
+          ).div(2)
+          await timeLock.withdraw(0, toBigNumber(5, 17))
+          expect(await timeLock.pendingFees()).to.eq(fee)
+        })
+      })
+
+      describe('When emergency unlock has been triggered', () => {
+        it('Should burn dividends token from caller', async () => {
+          await timeLock.deposit(toBigNumber(5), minLockDuration)
+          await timeLock.triggerEmergencyUnlock()
+          await expect(timeLock.withdraw(0, toBigNumber(5)))
+            .to.emit(dividendsToken, 'Transfer')
+            .withArgs(wallet.address, constants.AddressZero, toBigNumber(5))
+        })
+    
+        it('Should withdraw full deposit from sub-delegation to the owner', async () => {
+          await timeLock.deposit(toBigNumber(5), minLockDuration)
+          await timeLock.triggerEmergencyUnlock()
+          const delegationModule = getContractAddress({ from: timeLock.address, nonce: 2 })
+          await expect(timeLock.withdraw(0, toBigNumber(5)))
+            .to.emit(depositToken, 'Transfer')
+            .withArgs(delegationModule, wallet.address, toBigNumber(5))
+        })
+    
+        it('Should delete lock if full amount withdrawn', async () => {
+          await timeLock.deposit(toBigNumber(1), minLockDuration)
+          await timeLock.triggerEmergencyUnlock()
+          await expect(timeLock.withdraw(0, toBigNumber(1)))
+            .to.emit(timeLock, 'LockDestroyed')
+            .withArgs(0, wallet.address, toBigNumber(1), toBigNumber(1))
           expect(await timeLock.locks(0)).to.deep.eq([
             constants.Zero, 0, 0, constants.AddressZero
           ])
@@ -457,11 +630,12 @@ describe('SharesTimelock', () => {
       await expect(timeLock.distributeFees())
         .to.be.revertedWith('ZF')
     })
+
     it('Should revert if dividends token has 0 shares', async () => {
       await timeLock.deposit(toBigNumber(1), minLockDuration)
       const timestamp = await latest()
       await setNextTimestamp(timestamp + (minLockDuration / 2))
-      await timeLock.withdraw(0)
+      await timeLock.destroyLock(0)
       await expect(timeLock.distributeFees())
         .to.be.revertedWith('SHARES')
     })
@@ -470,7 +644,7 @@ describe('SharesTimelock', () => {
       await timeLock.deposit(toBigNumber(1), minLockDuration)
       const timestamp = await latest()
       await setNextTimestamp(timestamp + (minLockDuration / 2))
-      await timeLock.withdraw(0)
+      await timeLock.destroyLock(0)
       await timeLock.deposit(toBigNumber(1), minLockDuration)
       await expect(timeLock.distributeFees())
         .to.emit(timeLock, 'FeesDistributed')
@@ -481,7 +655,7 @@ describe('SharesTimelock', () => {
       await timeLock.deposit(toBigNumber(1), minLockDuration)
       const timestamp = await latest()
       await setNextTimestamp(timestamp + (minLockDuration / 2))
-      await timeLock.withdraw(0)
+      await timeLock.destroyLock(0)
       await timeLock.deposit(toBigNumber(1), minLockDuration)
       await timeLock.distributeFees()
       expect(await timeLock.pendingFees()).to.eq(0)
@@ -491,7 +665,7 @@ describe('SharesTimelock', () => {
       await timeLock.deposit(toBigNumber(1), minLockDuration)
       const timestamp = await latest()
       await setNextTimestamp(timestamp + (minLockDuration / 2))
-      await timeLock.withdraw(0)
+      await timeLock.destroyLock(0)
       await timeLock.deposit(toBigNumber(1), minLockDuration)
       await expect(timeLock.distributeFees())
         .to.emit(dividendsToken, 'DividendsDistributed')
