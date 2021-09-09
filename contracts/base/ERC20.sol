@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;
 
+import "../interfaces/IERC20.sol";
+
+
 /************************************************************************************************
 Originally from https://github.com/boringcrypto/BoringSolidity/blob/master/contracts/ERC20.sol
 
@@ -10,24 +13,21 @@ at commit hash 8f2b54f645a7844ae266cc50dc3ae4c125c7b9fc.
 Subject to the MIT license
 *************************************************************************************************/
 
-contract ERC20 {
-  event Transfer(address indexed _from, address indexed _to, uint256 _value);
-  event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-
+contract ERC20 is IERC20 {
   /**
    * @dev The amount of tokens in existence.
    */
-  uint256 public totalSupply;
+  uint256 public override totalSupply;
   /**
    * @dev The amount of tokens owned by `account`.
    */
-  mapping(address => uint256) public balanceOf;
+  mapping(address => uint256) public override balanceOf;
   /**
    * @dev The remaining number of tokens that `spender` will be allowed
    * to spend on behalf of `owner` through {transferFrom}. This is zero
    * by default.
    */
-  mapping(address => mapping(address => uint256)) public allowance;
+  mapping(address => mapping(address => uint256)) public override allowance;
 
   /** @dev The name of the token. */
   string public name;
@@ -72,46 +72,8 @@ contract ERC20 {
    * - `recipient` cannot be the zero address.
    * - the caller must have a balance of at least `amount`.
    */
-  function transfer(address to, uint256 amount) external returns (bool) {
+  function transfer(address to, uint256 amount) external virtual override returns (bool) {
     _transfer(msg.sender, to, amount);
-    return true;
-  }
-
-  /**
-   * @dev Atomically increases the allowance granted to `spender` by the caller.
-   *
-   * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
-   *
-   * Emits an {Approval} event indicating the updated allowance.
-   *
-   * Requirements:
-   *
-   * - `spender` cannot be the zero address.
-   */
-  function increaseAllowance(address spender, uint256 addedValue) external virtual returns (bool) {
-    _approve(msg.sender, spender, allowance[msg.sender][spender] + addedValue);
-    return true;
-  }
-
-  /**
-   * @dev Atomically decreases the allowance granted to `spender` by the caller.
-   *
-   * This is an alternative to {approve} that can be used as a mitigation for
-   * problems described in {IERC20-approve}.
-   *
-   * Emits an {Approval} event indicating the updated allowance.
-   *
-   * Requirements:
-   *
-   * - `spender` cannot be the zero address.
-   * - `spender` must have allowance for the caller of at least
-   * `subtractedValue`.
-   */
-  function decreaseAllowance(address spender, uint256 subtractedValue) external virtual returns (bool) {
-    uint256 spenderAllowance = allowance[msg.sender][spender];
-    require(spenderAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-    _approve(msg.sender, spender, spenderAllowance - subtractedValue);
     return true;
   }
 
@@ -136,7 +98,7 @@ contract ERC20 {
     address sender,
     address recipient,
     uint256 amount
-  ) external returns (bool) {
+  ) external override returns (bool) {
     _transfer(sender, recipient, amount);
 
     uint256 spenderAllowance = allowance[sender][msg.sender];
@@ -164,7 +126,7 @@ contract ERC20 {
    *
    * - `spender` cannot be the zero address.
    */
-  function approve(address spender, uint256 amount) external returns (bool) {
+  function approve(address spender, uint256 amount) external override returns (bool) {
     _approve(msg.sender, spender, amount);
     return true;
   }
