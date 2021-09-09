@@ -10,7 +10,6 @@ at commit hash 8f2b54f645a7844ae266cc50dc3ae4c125c7b9fc.
 Subject to the MIT license
 *************************************************************************************************/
 
-
 contract ERC20 {
   event Transfer(address indexed _from, address indexed _to, uint256 _value);
   event Approval(address indexed _owner, address indexed _spender, uint256 _value);
@@ -111,7 +110,7 @@ contract ERC20 {
    */
   function decreaseAllowance(address spender, uint256 subtractedValue) external virtual returns (bool) {
     uint256 spenderAllowance = allowance[msg.sender][spender];
-    require(spenderAllowance >= subtractedValue, 'ERC20: decreased allowance below zero');
+    require(spenderAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
     _approve(msg.sender, spender, spenderAllowance - subtractedValue);
     return true;
   }
@@ -133,11 +132,15 @@ contract ERC20 {
    * - the caller must have allowance for `sender`'s tokens of at least
    * `amount`.
    */
-  function transferFrom(address sender, address recipient, uint256 amount) external returns (bool) {
+  function transferFrom(
+    address sender,
+    address recipient,
+    uint256 amount
+  ) external returns (bool) {
     _transfer(sender, recipient, amount);
 
     uint256 spenderAllowance = allowance[sender][msg.sender];
-    require(spenderAllowance >= amount, 'ERC20: transfer amount exceeds allowance');
+    require(spenderAllowance >= amount, "ERC20: transfer amount exceeds allowance");
 
     _approve(sender, msg.sender, spenderAllowance - amount);
     return true;
@@ -180,14 +183,18 @@ contract ERC20 {
    * - `recipient` cannot be the zero address.
    * - `sender` must have a balance of at least `amount`.
    */
-  function _transfer(address sender, address recipient, uint256 amount) internal virtual {
+  function _transfer(
+    address sender,
+    address recipient,
+    uint256 amount
+  ) internal virtual {
     require(sender != address(0), "ERC20: transfer from the zero address");
     // If `amount` is 0, or `msg.sender` is `to` nothing happens
     if (amount != 0) {
       uint256 srcBalance = balanceOf[sender];
       require(srcBalance >= amount, "ERC20: transfer amount exceeds balance");
       if (sender != recipient) {
-        require(recipient != address(0), 'ERC20: transfer to the zero address'); // Moved down so low balance calls safe some gas
+        require(recipient != address(0), "ERC20: transfer to the zero address"); // Moved down so low balance calls safe some gas
         balanceOf[sender] = srcBalance - amount; // Underflow is checked
         balanceOf[recipient] += amount; // Can't overflow because totalSupply would be greater than 2^256-1
       }
@@ -208,7 +215,11 @@ contract ERC20 {
    *
    * - `spender` cannot be the zero address.
    */
-  function _approve(address owner, address spender, uint256 amount) internal virtual {
+  function _approve(
+    address owner,
+    address spender,
+    uint256 amount
+  ) internal virtual {
     require(spender != address(0), "ERC20: approve to the zero address");
     allowance[owner][spender] = amount;
     emit Approval(owner, spender, amount);
@@ -243,8 +254,8 @@ contract ERC20 {
    */
   function _burn(address account, uint256 amount) internal virtual {
     require(account != address(0), "ERC20: burn from the zero address");
-    uint supply = totalSupply;
-    uint balance = balanceOf[account];
+    uint256 supply = totalSupply;
+    uint256 balance = balanceOf[account];
     require((balanceOf[account] = balance - amount) <= balance, "ERC20: burn amount exceeds balance");
     require((totalSupply = supply - amount) <= supply);
 
