@@ -63,14 +63,14 @@ interface ISharesTimeLock is IDelegationModule {
   function maxDividendsBonusMultiplier() external view returns (uint256);
 
   function locks(uint256) external view returns (uint256 amount, uint32 lockedAt, uint32 lockDuration, address owner);
-  
-  function minimumDeposit() external view returns (uint256);
 
-  function pendingFees() external view returns (uint256);
+  function minimumDeposit() external view returns (uint96);
+
+  function pendingFees() external view returns (uint96);
 
   function getLocksLength() external view returns (uint256);
 
-  function setMinimumDeposit(uint256 minimumDeposit_) external;
+  function setMinimumDeposit(uint96 minimumDeposit_) external;
 
   function getDividendsMultiplier(uint256 duration) external view returns (uint256 multiplier);
 

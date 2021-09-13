@@ -53,15 +53,18 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
    * @dev Array of token locks.
    */
   Lock[] public override locks;
+
   /**
    * @dev Minimum amount of tokens that can be deposited.
    * If zero, there is no minimum.
    */
-  uint256 public override minimumDeposit;
+  uint96 public override minimumDeposit;
+
   /**
    * @dev Accumulated early withdrawal fees.
    */
-  uint256 public override pendingFees;
+  uint96 public override pendingFees;
+
   /**
    * @dev Allows all locked tokens to be withdrawn with no fees.
    */
@@ -162,7 +165,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
   /**
    * @dev Set the minimum deposit to `minimumDeposit_`. If it is 0, there will be no minimum.
    */
-  function setMinimumDeposit(uint256 minimumDeposit_) external override onlyOwner {
+  function setMinimumDeposit(uint96 minimumDeposit_) external override onlyOwner {
     minimumDeposit = minimumDeposit_;
     emit MinimumDepositSet(minimumDeposit_);
   }
@@ -256,11 +259,16 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
     if (earlyWithdrawalFee > 0) {
       _withdrawFromModule(msg.sender, address(this), amount);
       depositToken.safeTransfer(msg.sender, owed);
-      pendingFees = pendingFees.add(earlyWithdrawalFee);
+      pendingFees = safe96(uint256(pendingFees).add(earlyWithdrawalFee));
       emit FeesReceived(earlyWithdrawalFee);
     } else {
       _withdrawFromModule(msg.sender, msg.sender, amount);
     }
+  }
+
+  function safe96(uint256 n) internal pure returns (uint96) {
+    require(n < 2**96, "amount exceeds 96 bits");
+    return uint96(n);
   }
 
   /**
