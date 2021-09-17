@@ -1,28 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.7.6;
 
-import "./ERC20.sol";
+import "./ERC20VotesComp.sol";
 import "./AbstractDividends.sol";
 
 
-contract ERC20Dividends is ERC20, AbstractDividends {
-  /**
-   * @dev Wrapper for balanceOf to give AbstractDividends a function reference.
-   */
-  function _balanceOf(address account) internal view returns (uint256) {
-    return balanceOf[account];
-  }
-
-  /**
-   * @dev Wrapper for totalSupply to give AbstractDividends a function reference.
-   */
-  function _totalSupply() internal view returns (uint256) {
-    return totalSupply;
-  }
-
+contract ERC20Dividends is ERC20VotesComp, AbstractDividends {
   constructor(string memory name, string memory symbol)
-    ERC20(name, symbol, 18)
-    AbstractDividends(_balanceOf, _totalSupply)
+    ERC20VotesComp(name, symbol)
+    AbstractDividends(balanceOf, totalSupply)
   {}
 
 	/**
@@ -32,7 +18,7 @@ contract ERC20Dividends is ERC20, AbstractDividends {
 	 * @param to The address to transfer to.
 	 * @param value The amount to be transferred.
 	 */
-	function _transfer(address from, address to, uint256 value) internal virtual override {
+	function _transfer(address from, address to, uint96 value) internal virtual override {
 		super._transfer(from, to, value);
     _correctPointsForTransfer(from, to, value);
 	}
