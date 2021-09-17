@@ -4,7 +4,7 @@ const ZERO_ADDRESS = constants.AddressZero;
 
 const expectRevert = (tx, message) => expect(tx).to.be.revertedWith(message);
 
-function shouldBehaveLikeERC20 (errorPrefix, initialSupply, initialHolder, recipient, anotherAccount) {
+function shouldBehaveLikeERC20 (initialSupply, initialHolder, recipient, anotherAccount) {
   describe('total supply', function () {
     it('returns the total amount of tokens', async function () {
       expect(await this.token.totalSupply()).to.eq(initialSupply);
@@ -26,7 +26,7 @@ function shouldBehaveLikeERC20 (errorPrefix, initialSupply, initialHolder, recip
   });
 
   describe('transfer', function () {
-    shouldBehaveLikeERC20Transfer(errorPrefix, initialHolder, recipient, initialSupply,
+    shouldBehaveLikeERC20Transfer(initialHolder, recipient, initialSupply,
       function (from, to, value) {
         return this.token.transfer(to, value);
       },
@@ -83,7 +83,7 @@ function shouldBehaveLikeERC20 (errorPrefix, initialSupply, initialHolder, recip
 
             it('reverts', async function () {
               await expectRevert(this.token.connect(spender).transferFrom(
-                tokenOwner.address, to.address, amount), `${errorPrefix}: transfer amount exceeds balance`,
+                tokenOwner.address, to.address, amount), `transfer amount exceeds balance`,
               );
             });
           });
@@ -99,7 +99,7 @@ function shouldBehaveLikeERC20 (errorPrefix, initialSupply, initialHolder, recip
 
             it('reverts', async function () {
               await expectRevert(this.token.connect(spender).transferFrom(
-                tokenOwner.address, to.address, amount), `${errorPrefix}: transfer amount exceeds allowance`,
+                tokenOwner.address, to.address, amount), `transfer amount exceeds allowance`,
               );
             });
           });
@@ -109,7 +109,7 @@ function shouldBehaveLikeERC20 (errorPrefix, initialSupply, initialHolder, recip
 
             it('reverts', async function () {
               await expectRevert(this.token.connect(spender).transferFrom(
-                tokenOwner.address, to.address, amount), `${errorPrefix}: transfer amount exceeds balance`,
+                tokenOwner.address, to.address, amount), `transfer amount exceeds balance`,
               );
             });
           });
@@ -126,7 +126,7 @@ function shouldBehaveLikeERC20 (errorPrefix, initialSupply, initialHolder, recip
 
         it('reverts', async function () {
           await expectRevert(this.token.connect(spender).transferFrom(
-            tokenOwner.address, to, amount), `${errorPrefix}: transfer to the zero address`,
+            tokenOwner.address, to, amount), `transfer to the zero address`,
           );
         });
       });
@@ -139,14 +139,14 @@ function shouldBehaveLikeERC20 (errorPrefix, initialSupply, initialHolder, recip
 
       it('reverts', async function () {
         await expectRevert(this.token.connect(spender).transferFrom(
-          tokenOwner, to.address, amount), `${errorPrefix}: transfer from the zero address`,
+          tokenOwner, to.address, amount), `transfer from the zero address`,
         );
       });
     });
   });
 
   describe('approve', function () {
-    shouldBehaveLikeERC20Approve(errorPrefix, initialHolder, recipient, initialSupply,
+    shouldBehaveLikeERC20Approve(initialHolder, recipient, initialSupply,
       function (owner, spender, amount) {
         return this.token.connect(owner).approve(spender, amount);
       },
@@ -154,14 +154,14 @@ function shouldBehaveLikeERC20 (errorPrefix, initialSupply, initialHolder, recip
   });
 }
 
-function shouldBehaveLikeERC20Transfer (errorPrefix, from, to, balance, transfer) {
+function shouldBehaveLikeERC20Transfer (from, to, balance, transfer) {
   describe('when the recipient is not the zero address', function () {
     describe('when the sender does not have enough balance', function () {
       const amount = balance.add(1);
 
       it('reverts', async function () {
         await expectRevert(transfer.call(this, from.address, to.address, amount),
-          `${errorPrefix}: transfer amount exceeds balance`,
+          `transfer amount exceeds balance`,
         );
       });
     });
@@ -206,13 +206,13 @@ function shouldBehaveLikeERC20Transfer (errorPrefix, from, to, balance, transfer
   describe('when the recipient is the zero address', function () {
     it('reverts', async function () {
       await expectRevert(transfer.call(this, from.address, ZERO_ADDRESS, balance),
-        `${errorPrefix}: transfer to the zero address`,
+        `transfer to the zero address`,
       );
     });
   });
 }
 
-function shouldBehaveLikeERC20Approve (errorPrefix, owner, spender, supply, approve) {
+function shouldBehaveLikeERC20Approve (owner, spender, supply, approve) {
   describe('when the spender is not the zero address', function () {
     describe('when the sender has enough balance', function () {
       const amount = supply;
@@ -278,7 +278,7 @@ function shouldBehaveLikeERC20Approve (errorPrefix, owner, spender, supply, appr
   describe('when the spender is the zero address', function () {
     it('reverts', async function () {
       await expectRevert(approve.call(this, owner, ZERO_ADDRESS, supply),
-        `${errorPrefix}: approve to the zero address`,
+        `approve to the zero address`,
       );
     });
   });
