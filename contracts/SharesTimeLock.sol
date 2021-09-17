@@ -55,6 +55,11 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
   Lock[] public override locks;
 
   /**
+   * @dev Account which receives fees taken for early withdrawals.
+   */
+  address public override feeRecipient;
+
+  /**
    * @dev Minimum amount of tokens that can be deposited.
    * If zero, there is no minimum.
    */
@@ -170,18 +175,27 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
     emit MinimumDepositSet(minimumDeposit_);
   }
 
+  /**
+   * @dev Set the account which receives fees taken for early withdrawals.
+   */
+  function setFeeRecipient(address feeRecipient_) external override onlyOwner {
+    feeRecipient = feeRecipient_;
+    emit FeeRecipientSet(feeRecipient_);
+  }
+
 /** ========== Fees ==========  */
 
   /**
-   * @dev Distributes the accumulated early withdrawal fees through the dividends token.
+   * @dev Transfers accumulated early withdrawal fees to the fee recipient.
    */
   function distributeFees() external override {
+    address recipient = feeRecipient;
+    require(recipient != address(0), "no recipient");
     uint256 amount = pendingFees;
-    require(amount > 0, "ZF");
+    require(amount > 0, "no fees");
     pendingFees = 0;
-    IERC20(depositToken).approve(dividendsToken, amount);
-    IERC20DividendsOwned(dividendsToken).distribute(amount);
-    emit FeesDistributed(amount);
+    depositToken.safeTransfer(recipient, amount);
+    emit FeesTransferred(amount);
   }
 
 /** ========== Locks ==========  */

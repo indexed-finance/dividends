@@ -28,9 +28,11 @@ interface ISharesTimeLock is IDelegationModule {
 
   event MinimumDepositSet(uint256 minimumDeposit);
 
+  event FeeRecipientSet(address feeRecipient);
+
   event FeesReceived(uint256 amount);
 
-  event FeesDistributed(uint256 amount);
+  event FeesTransferred(uint256 amount);
 
   event EmergencyUnlockTriggered();
 
@@ -63,6 +65,8 @@ interface ISharesTimeLock is IDelegationModule {
   function maxDividendsBonusMultiplier() external view returns (uint256);
 
   function locks(uint256) external view returns (uint256 amount, uint32 lockedAt, uint32 lockDuration, address owner);
+  
+  function feeRecipient() external view returns (address);
 
   function minimumDeposit() external view returns (uint96);
 
@@ -71,6 +75,8 @@ interface ISharesTimeLock is IDelegationModule {
   function getLocksLength() external view returns (uint256);
 
   function setMinimumDeposit(uint96 minimumDeposit_) external;
+
+  function setFeeRecipient(address feeRecipient_) external;
 
   function getDividendsMultiplier(uint256 duration) external view returns (uint256 multiplier);
 
