@@ -4,7 +4,7 @@ import { TestERC20Dividends } from '../typechain/TestERC20Dividends';
 import { POINTS_MULTIPLIER, toBigNumber } from './shared/utils';
 import { BigNumber } from 'ethers';
 
-describe('ERC20DividendBearing', () => {
+describe('ERC20Dividends', () => {
   let [wallet, wallet1, wallet2] = waffle.provider.getWallets()
   let erc20: TestERC20Dividends;
 
@@ -41,7 +41,7 @@ describe('ERC20DividendBearing', () => {
 
   describe('burn', () => {
     it('Should revert if amount exceeds balance', async () => {
-      await expect(erc20.burn(wallet.address, 1)).to.be.revertedWith('ERC20: burn amount exceeds balance')
+      await expect(erc20.burn(wallet.address, 1)).to.be.revertedWith('burn amount exceeds balance')
     })
 
     describe('When no disbursals have occurred', () => {
