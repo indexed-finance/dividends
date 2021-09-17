@@ -110,7 +110,7 @@ describe('DelegationModule', () => {
     it('Should revert if module does not have enough tokens', async () => {
       await module.getOrCreateModuleInternal(wallet.address)
       await expect(module.withdrawFromModule(wallet.address, wallet.address, toBigNumber(5)))
-        .to.be.revertedWith('ERC20: transfer amount exceeds balance')
+        .to.be.revertedWith('transfer amount exceeds balance')
     })
 
     it('Should withdraw amount from module', async () => {
@@ -133,8 +133,8 @@ describe('DelegationModule', () => {
     it('Should set delegate for account', async () => {
       await module.depositToModule(wallet.address, toBigNumber(5))
       await expect(module.delegateFromModule(wallet.address, wallet1.address))
-        .to.emit(depositToken, 'Delegate')
-        .withArgs(subModule.address, wallet1.address)
+        .to.emit(depositToken, 'DelegateChanged')
+        .withArgs(subModule.address, wallet.address, wallet1.address)
       expect(await depositToken.delegates(subModule.address)).to.eq(wallet1.address)
     })
   })
