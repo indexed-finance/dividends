@@ -141,7 +141,7 @@ contract SharesTimeLock is ISharesTimeLock, DelegationModule, Ownable() {
     uint256 minEarlyWithdrawalFee_,
     uint256 baseEarlyWithdrawalFee_,
     uint256 maxDividendsBonusMultiplier_
-  ) payable DelegationModule(depositToken_) {
+  ) DelegationModule(depositToken_) {
     dividendsToken = dividendsToken_;
     require(minLockDuration_ < maxLockDuration_, "min>=max");
     require(
